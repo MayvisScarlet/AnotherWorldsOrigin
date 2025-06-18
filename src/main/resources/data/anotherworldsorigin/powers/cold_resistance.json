@@ -1,0 +1,51 @@
+{
+    "type": "origins:multiple",
+    "cold_immunity": {
+        "type": "origins:damage_immunity",
+        "damage_type": "minecraft:freeze"
+    },
+    "snow_walk": {
+        "type": "origins:conditioned_attribute",
+        "modifier": {
+            "attribute": "minecraft:generic.movement_speed",
+            "value": 0.1,
+            "operation": "multiply_base"
+        },
+        "condition": {
+            "type": "origins:in_block_anywhere",
+            "block_condition": {
+                "type": "origins:or",
+                "conditions": [
+                    {
+                        "type": "origins:block",
+                        "block": "minecraft:snow"
+                    },
+                    {
+                        "type": "origins:block",
+                        "block": "minecraft:powder_snow"
+                    }
+                ]
+            }
+        }
+    },
+    "cold_biome_strength": {
+        "type": "origins:conditioned_attribute",
+        "modifier": {
+            "attribute": "minecraft:generic.attack_damage",
+            "value": 1.0,
+            "operation": "addition"
+        },
+        "condition": {
+            "type": "origins:biome",
+            "biomes": [
+                "minecraft:snowy_plains",
+                "minecraft:ice_spikes",
+                "minecraft:snowy_taiga",
+                "minecraft:frozen_river",
+                "minecraft:snowy_beach",
+                "minecraft:frozen_ocean",
+                "minecraft:deep_frozen_ocean"
+            ]
+        }
+    }
+}

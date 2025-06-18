@@ -1,0 +1,43 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="anotherworldsorigin"
+version="${file.jarVersion}"
+displayName="Another Worlds Origin"
+description='''
+強力な異世界種族を追加するOrigins MODアドオン
+'''
+authors="MayvisScarlet"
+credits="Origins MOD, Apotheosis MOD"
+logoFile="logo.png"
+
+[[dependencies.anotherworldsorigin]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.anotherworldsorigin]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
+
+# Origins関連は任意依存として設定（開発時の競合回避）
+[[dependencies.anotherworldsorigin]]
+modId="origins"
+mandatory=false
+versionRange="[1.10.0,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.anotherworldsorigin]]
+modId="apotheosis"
+mandatory=false
+versionRange="[7.4.0,)"
+ordering="AFTER"
+side="BOTH"
