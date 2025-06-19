@@ -177,4 +177,34 @@ public class PatriciaOriginConfig {
     public boolean isHotBiome(float temperature) {
         return temperature >= getHotTemperatureThreshold();
     }
+    
+    // === 追加のヘルパーメソッド ===
+    
+    /**
+     * boolean値を取得（OriginConfigの基底メソッドを使用）
+     */
+    public boolean getBoolean(String key, boolean defaultValue) {
+        return config.getBoolean(key, defaultValue);
+    }
+    
+    /**
+     * String値を取得（OriginConfigの基底メソッドを使用）
+     */
+    public String getString(String key, String defaultValue) {
+        return config.getString(key, defaultValue);
+    }
+    
+    /**
+     * double値を取得（OriginConfigの基底メソッドを使用）
+     */
+    public double getDouble(String key, double defaultValue) {
+        return config.getDouble(key, defaultValue);
+    }
+    
+    /**
+     * int値を取得（OriginConfigの基底メソッドを使用）
+     */
+    public int getInt(String key, int defaultValue) {
+        return config.getInt(key, defaultValue);
+    }
 }

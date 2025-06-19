@@ -1,6 +1,7 @@
 package com.mayvisscarlet.anotherworldsorigin.origins.patricia;
 
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaOriginConfig;
 
 /**
  * パトリシアの能力に関する数値を管理するクラス（JSON設定対応版）
@@ -246,6 +247,13 @@ public class PatriciaConstants {
      */
     public static boolean isHighAffinityActive(int affinityLevel) {
         return getConfig().isHighAffinityActive(affinityLevel);
+    }
+    
+    /**
+     * デバッグメッセージを表示するかどうか
+     */
+    public static boolean shouldShowDebugMessages() {
+        return getConfig().getBoolean("debug.show_passive_messages", false);
     }
     
     /**

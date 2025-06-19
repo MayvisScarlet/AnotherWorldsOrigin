@@ -71,15 +71,22 @@ repositories {
             includeGroup "curse.maven"
         }
     }
+    maven {
+        url "https://maven.ladysnake.org/releases"
+    }
 }
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.0'
 
+    // Calio (Origins dependency)
+    implementation fg.deobf("io.github.edwinmindcraft:calio-forge:1.20.1-1.11.0.5")
+    // Apoli (Origins dependency)
+    implementation fg.deobf("io.github.edwinmindcraft:apoli-forge:1.20.1-2.9.0.8")
     // Origins MOD - 実際にクライアントで動作しているバージョンと同じものを使用
-    implementation fg.deobf("curse.maven:origins-forge-474438:5314209") // Origins 1.20.1-1.10.0.9
+    implementation fg.deobf("io.github.edwinmindcraft:origins-forge:1.20.1-1.10.0.9")
     
-    // Caelus API
+    // Caelus API (Origins dependency)
     implementation fg.deobf("curse.maven:caelus-308989:5281700") // caelus-forge-3.2.0+1.20.1
 
     // Apotheosis MOD (Shadhack's Apotheosis)

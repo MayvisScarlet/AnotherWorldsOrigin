@@ -1,12 +1,12 @@
 {
-    "powers": [
-        "anotherworldsorigin:cold_resistance"
-    ],
-    "icon": {
-        "item": "minecraft:blue_ice"
-    },
-    "order": 10,
-    "impact": 2,
-    "name": "Patricia",
-    "description": "氷の力を操る強力な戦士。寒冷地での戦闘に特化しているが、熱に弱い。"
+  "powers": [
+    "anotherworldsorigin:unwavering_winter"
+  ],
+  "icon": {
+    "item": "minecraft:blue_ice"
+  },
+  "order": 10,
+  "impact": 2,
+  "name": "Patricia",
+  "description": "氷の力を操る強力な戦士。"
 }

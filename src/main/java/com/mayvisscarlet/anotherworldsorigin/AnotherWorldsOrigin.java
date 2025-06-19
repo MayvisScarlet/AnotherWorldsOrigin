@@ -5,6 +5,8 @@ import com.mayvisscarlet.anotherworldsorigin.commands.AffinityCommand;
 import com.mayvisscarlet.anotherworldsorigin.commands.TestCommand;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigInitializer;
 import com.mayvisscarlet.anotherworldsorigin.events.AffinityEventHandler;
+import com.mayvisscarlet.anotherworldsorigin.events.PowerEventHandler;
+import com.mayvisscarlet.anotherworldsorigin.registry.ModPowerTypes;
 import com.mayvisscarlet.anotherworldsorigin.test.DependencyTest;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
@@ -29,11 +31,15 @@ public class AnotherWorldsOrigin {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         
+        // 独自PowerFactoryを登録
+        ModPowerTypes.register(modEventBus);
+        
         // ForgeイベントバスにMODクラス自体を登録（コマンド登録用）
         MinecraftForge.EVENT_BUS.register(this);
         
-        // Affinity関連のイベントハンドラーを登録
+        // イベントハンドラーを登録
         MinecraftForge.EVENT_BUS.register(AffinityEventHandler.class);
+        MinecraftForge.EVENT_BUS.register(PowerEventHandler.class);
         
         LOGGER.info("Another Worlds Origin - Loading...");
         
@@ -51,9 +57,7 @@ public class AnotherWorldsOrigin {
         LOGGER.info("Patricia origin ready to be selected!");
         LOGGER.info("Affinity system initialized!");
         LOGGER.info("JSON config system initialized!");
-        
-        // Origins連携は実行時に自動で行われる（JSONファイルによる）
-        // 将来的にここでカスタム能力の登録などを行う予定
+        LOGGER.info("Custom PowerFactories registered!");
     }
     
     /**
