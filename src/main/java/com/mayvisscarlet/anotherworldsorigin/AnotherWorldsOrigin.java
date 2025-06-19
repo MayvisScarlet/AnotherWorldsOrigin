@@ -3,6 +3,7 @@ package com.mayvisscarlet.anotherworldsorigin;
 import com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability;
 import com.mayvisscarlet.anotherworldsorigin.commands.AffinityCommand;
 import com.mayvisscarlet.anotherworldsorigin.commands.TestCommand;
+import com.mayvisscarlet.anotherworldsorigin.config.ConfigInitializer;
 import com.mayvisscarlet.anotherworldsorigin.events.AffinityEventHandler;
 import com.mayvisscarlet.anotherworldsorigin.test.DependencyTest;
 import net.minecraftforge.common.MinecraftForge;
@@ -41,9 +42,15 @@ public class AnotherWorldsOrigin {
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+        LOGGER.info("Another Worlds Origin - Common Setup Starting...");
+        
+        // 設定システムを初期化
+        ConfigInitializer.initialize(event);
+        
         LOGGER.info("Another Worlds Origin - Common Setup Complete");
         LOGGER.info("Patricia origin ready to be selected!");
         LOGGER.info("Affinity system initialized!");
+        LOGGER.info("JSON config system initialized!");
         
         // Origins連携は実行時に自動で行われる（JSONファイルによる）
         // 将来的にここでカスタム能力の登録などを行う予定
