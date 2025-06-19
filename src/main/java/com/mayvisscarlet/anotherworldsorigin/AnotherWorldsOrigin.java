@@ -4,13 +4,15 @@ import com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability;
 import com.mayvisscarlet.anotherworldsorigin.commands.AffinityCommand;
 import com.mayvisscarlet.anotherworldsorigin.commands.TestCommand;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigInitializer;
-import com.mayvisscarlet.anotherworldsorigin.events.AffinityEventHandler;
-import com.mayvisscarlet.anotherworldsorigin.events.PowerEventHandler;
+import com.mayvisscarlet.anotherworldsorigin.events.IntegratedEventHandler;
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.abilities.UnwaveringWinter;
 import com.mayvisscarlet.anotherworldsorigin.registry.ModPowerTypes;
 import com.mayvisscarlet.anotherworldsorigin.test.DependencyTest;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -34,12 +36,12 @@ public class AnotherWorldsOrigin {
         // 独自PowerFactoryを登録
         ModPowerTypes.register(modEventBus);
         
-        // ForgeイベントバスにMODクラス自体を登録（コマンド登録用）
+        // ForgeイベントバスにMODクラス自体を登録（コマンド登録用&イベント処理用）
         MinecraftForge.EVENT_BUS.register(this);
         
         // イベントハンドラーを登録
-        MinecraftForge.EVENT_BUS.register(AffinityEventHandler.class);
-        MinecraftForge.EVENT_BUS.register(PowerEventHandler.class);
+        MinecraftForge.EVENT_BUS.register(IntegratedEventHandler.class);
+        MinecraftForge.EVENT_BUS.register(UnwaveringWinter.class);
         
         LOGGER.info("Another Worlds Origin - Loading...");
         
@@ -69,6 +71,38 @@ public class AnotherWorldsOrigin {
     }
     
     /**
+     * プレイヤー複製時のデータコピー（死亡復活時の親和度保持）
+     */
+    @SubscribeEvent
+    public void onPlayerCloned(PlayerEvent.Clone event) {
+        // 死亡時のみ親和度データを保持（wasDeathフラグチェック）
+        if (event.isWasDeath()) {
+            Player original = event.getOriginal();
+            Player newPlayer = event.getEntity();
+            
+            original.getCapability(AffinityCapability.AFFINITY_DATA).ifPresent(oldData -> {
+                newPlayer.getCapability(AffinityCapability.AFFINITY_DATA).ifPresent(newData -> {
+                    // データをコピー
+                    var oldAffinityData = oldData.getAffinityData();
+                    var newAffinityData = new com.mayvisscarlet.anotherworldsorigin.growth.AffinityData();
+                    
+                    // 詳細なデータコピー
+                    newAffinityData.addAffinityPoints(oldAffinityData.getTotalAffinityPoints());
+                    newData.setAffinityData(newAffinityData);
+                    
+                    LOGGER.info("Death clone: Preserved affinity data for {}: Level={}, Total={}", 
+                        newPlayer.getDisplayName().getString(),
+                        newData.getAffinityData().getAffinityLevel(),
+                        newData.getAffinityData().getTotalAffinityPoints());
+                });
+            });
+        } else {
+            LOGGER.debug("Non-death clone event for {}, skipping affinity preservation", 
+                event.getEntity().getDisplayName().getString());
+        }
+    }
+    
+    /**
      * コマンドを登録（Forgeイベントバス用）
      */
     @SubscribeEvent
@@ -76,6 +110,7 @@ public class AnotherWorldsOrigin {
         LOGGER.info("==== Registering Another Worlds Origin Commands ====");
         
         try {
+            // 既存のコマンドクラスを使用
             TestCommand.register(event.getDispatcher());
             LOGGER.info("Test command registered successfully!");
             

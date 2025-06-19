@@ -1,109 +1,172 @@
 package com.mayvisscarlet.anotherworldsorigin.origins.patricia;
 
+import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
 import com.mayvisscarlet.anotherworldsorigin.config.OriginConfig;
 
 /**
- * パトリシア専用設定クラス
- * 型安全なアクセサを提供
+ * パトリシア専用設定クラス（完全一元化版）
+ * 数値は一切記載せず、ConfigManagerのみがデフォルト値を管理
  */
 public class PatriciaOriginConfig {
-    private final OriginConfig config;
+    private final OriginConfig baseConfig;
+    private static final String ORIGIN_NAME = "patricia";
     
     public PatriciaOriginConfig(OriginConfig config) {
-        this.config = config;
+        this.baseConfig = config;
     }
     
     // === 攻撃力計算式 ===
     public double getAffinityAttackCoefficient() {
-        return config.getDouble("unwavering_winter.attack_power.affinity_coefficient", 0.4);
+        return baseConfig.getDouble("unwavering_winter.attack_power.affinity_coefficient", 
+            getDefaultDouble("unwavering_winter.attack_power.affinity_coefficient"));
     }
     
     public double getBaseCoefficient() {
-        return config.getDouble("unwavering_winter.attack_power.base_coefficient", 0.1);
+        return baseConfig.getDouble("unwavering_winter.attack_power.base_coefficient", 
+            getDefaultDouble("unwavering_winter.attack_power.base_coefficient"));
     }
     
     public double getAttackSpeedMultiplier() {
-        return config.getDouble("unwavering_winter.attack_power.attack_speed_multiplier", 1.5);
+        return baseConfig.getDouble("unwavering_winter.attack_power.attack_speed_multiplier", 
+            getDefaultDouble("unwavering_winter.attack_power.attack_speed_multiplier"));
     }
     
     public double getBaseValue() {
-        return config.getDouble("unwavering_winter.attack_power.base_value", 4.0);
+        return baseConfig.getDouble("unwavering_winter.attack_power.base_value", 
+            getDefaultDouble("unwavering_winter.attack_power.base_value"));
     }
     
     // === Cold系バイオーム ===
     public double getColdBaseDamageReduction() {
-        return config.getDouble("unwavering_winter.cold_biome_benefits.base_damage_reduction", 15.0);
+        return baseConfig.getDouble("unwavering_winter.cold_biome_benefits.base_damage_reduction", 
+            getDefaultDouble("unwavering_winter.cold_biome_benefits.base_damage_reduction"));
     }
     
     public double getColdAffinityCoefficient() {
-        return config.getDouble("unwavering_winter.cold_biome_benefits.affinity_coefficient", 0.35);
+        return baseConfig.getDouble("unwavering_winter.cold_biome_benefits.affinity_coefficient", 
+            getDefaultDouble("unwavering_winter.cold_biome_benefits.affinity_coefficient"));
     }
     
     public double getColdMaxDamageReduction() {
-        return config.getDouble("unwavering_winter.cold_biome_benefits.max_damage_reduction", 25.0);
+        return baseConfig.getDouble("unwavering_winter.cold_biome_benefits.max_damage_reduction", 
+            getDefaultDouble("unwavering_winter.cold_biome_benefits.max_damage_reduction"));
     }
     
     public double getColdTemperatureThreshold() {
-        return config.getDouble("unwavering_winter.cold_biome_benefits.temperature_threshold", 0.2);
+        return baseConfig.getDouble("unwavering_winter.cold_biome_benefits.temperature_threshold", 
+            getDefaultDouble("unwavering_winter.cold_biome_benefits.temperature_threshold"));
     }
     
     // === 火炎ダメージ ===
     public double getFireBaseMultiplier() {
-        return config.getDouble("heat_vulnerability.fire_damage.base_multiplier", 2.0);
+        return baseConfig.getDouble("heat_vulnerability.fire_damage.base_multiplier", 
+            getDefaultDouble("heat_vulnerability.fire_damage.base_multiplier"));
     }
     
     public double getFireMinMultiplier() {
-        return config.getDouble("heat_vulnerability.fire_damage.min_multiplier", 1.5);
+        return baseConfig.getDouble("heat_vulnerability.fire_damage.min_multiplier", 
+            getDefaultDouble("heat_vulnerability.fire_damage.min_multiplier"));
     }
     
     public double getFireAffinityReduction() {
-        return config.getDouble("heat_vulnerability.fire_damage.affinity_reduction", 0.01);
+        return baseConfig.getDouble("heat_vulnerability.fire_damage.affinity_reduction", 
+            getDefaultDouble("heat_vulnerability.fire_damage.affinity_reduction"));
     }
     
     // === Hot系バイオーム ===
     public double getHotBaseDamageIncrease() {
-        return config.getDouble("heat_vulnerability.hot_biome_penalties.base_damage_increase", 25.0);
+        return baseConfig.getDouble("heat_vulnerability.hot_biome_penalties.base_damage_increase", 
+            getDefaultDouble("heat_vulnerability.hot_biome_penalties.base_damage_increase"));
     }
     
     public double getHotAffinityCoefficient() {
-        return config.getDouble("heat_vulnerability.hot_biome_penalties.affinity_coefficient", 0.8);
+        return baseConfig.getDouble("heat_vulnerability.hot_biome_penalties.affinity_coefficient", 
+            getDefaultDouble("heat_vulnerability.hot_biome_penalties.affinity_coefficient"));
     }
     
     public double getHotMinDamageIncrease() {
-        return config.getDouble("heat_vulnerability.hot_biome_penalties.min_damage_increase", 0.0);
+        return baseConfig.getDouble("heat_vulnerability.hot_biome_penalties.min_damage_increase", 
+            getDefaultDouble("heat_vulnerability.hot_biome_penalties.min_damage_increase"));
     }
     
     public double getHotTemperatureThreshold() {
-        return config.getDouble("heat_vulnerability.hot_biome_penalties.temperature_threshold", 1.0);
+        return baseConfig.getDouble("heat_vulnerability.hot_biome_penalties.temperature_threshold", 
+            getDefaultDouble("heat_vulnerability.hot_biome_penalties.temperature_threshold"));
     }
     
     // === 回復ボーナス ===
     public double getRecoveryBaseDuration() {
-        return config.getDouble("heat_vulnerability.recovery_bonus.base_duration", 5.0);
+        return baseConfig.getDouble("heat_vulnerability.recovery_bonus.base_duration", 
+            getDefaultDouble("heat_vulnerability.recovery_bonus.base_duration"));
     }
     
     public double getRecoveryDurationCoefficient() {
-        return config.getDouble("heat_vulnerability.recovery_bonus.duration_coefficient", 0.5);
+        return baseConfig.getDouble("heat_vulnerability.recovery_bonus.duration_coefficient", 
+            getDefaultDouble("heat_vulnerability.recovery_bonus.duration_coefficient"));
     }
     
     public double getRecoveryAmountCoefficient() {
-        return config.getDouble("heat_vulnerability.recovery_bonus.amount_coefficient", 2.0);
+        return baseConfig.getDouble("heat_vulnerability.recovery_bonus.amount_coefficient", 
+            getDefaultDouble("heat_vulnerability.recovery_bonus.amount_coefficient"));
     }
     
     public double getRecoveryMaxIncrease() {
-        return config.getDouble("heat_vulnerability.recovery_bonus.max_increase", 100.0);
+        return baseConfig.getDouble("heat_vulnerability.recovery_bonus.max_increase", 
+            getDefaultDouble("heat_vulnerability.recovery_bonus.max_increase"));
     }
     
     // === マイルストーン ===
     public int getHighAffinityThreshold() {
-        return config.getInt("growth_system.milestones.high_affinity_threshold", 30);
+        return baseConfig.getInt("growth_system.milestones.high_affinity_threshold", 
+            getDefaultInt("growth_system.milestones.high_affinity_threshold"));
     }
     
     public int getAdvancedThreshold() {
-        return config.getInt("growth_system.milestones.advanced_threshold", 50);
+        return baseConfig.getInt("growth_system.milestones.advanced_threshold", 
+            getDefaultInt("growth_system.milestones.advanced_threshold"));
     }
     
-    // === 計算メソッド ===
+    // === デバッグ設定 ===
+    public boolean shouldShowDebugMessages() {
+        return baseConfig.getBoolean("debug.show_passive_messages", 
+            getDefaultBoolean("debug.show_passive_messages"));
+    }
+    
+    // === デフォルト値取得ヘルパーメソッド ===
+    
+    private double getDefaultDouble(String key) {
+        Double value = (Double) ConfigManager.getDefaultValue(ORIGIN_NAME, key);
+        if (value == null) {
+            throw new IllegalStateException("No default value found for patricia:" + key);
+        }
+        return value;
+    }
+    
+    private int getDefaultInt(String key) {
+        Number value = (Number) ConfigManager.getDefaultValue(ORIGIN_NAME, key);
+        if (value == null) {
+            throw new IllegalStateException("No default value found for patricia:" + key);
+        }
+        return value.intValue();
+    }
+    
+    private boolean getDefaultBoolean(String key) {
+        Boolean value = (Boolean) ConfigManager.getDefaultValue(ORIGIN_NAME, key);
+        if (value == null) {
+            throw new IllegalStateException("No default value found for patricia:" + key);
+        }
+        return value;
+    }
+    
+    private String getDefaultString(String key) {
+        String value = (String) ConfigManager.getDefaultValue(ORIGIN_NAME, key);
+        if (value == null) {
+            throw new IllegalStateException("No default value found for patricia:" + key);
+        }
+        return value;
+    }
+    
+    // === 計算メソッド（ビジネスロジック） ===
     
     /**
      * 親和度に基づいた攻撃力上昇量を計算
@@ -178,33 +241,40 @@ public class PatriciaOriginConfig {
         return temperature >= getHotTemperatureThreshold();
     }
     
-    // === 追加のヘルパーメソッド ===
+    // === 基底設定へのアクセス（必要時のみ） ===
     
     /**
-     * boolean値を取得（OriginConfigの基底メソッドを使用）
+     * 基底OriginConfigへの直接アクセス（高度な用途）
      */
-    public boolean getBoolean(String key, boolean defaultValue) {
-        return config.getBoolean(key, defaultValue);
+    public OriginConfig getBaseConfig() {
+        return baseConfig;
     }
     
     /**
-     * String値を取得（OriginConfigの基底メソッドを使用）
+     * 設定の概要情報を取得
      */
-    public String getString(String key, String defaultValue) {
-        return config.getString(key, defaultValue);
+    public String getConfigSummary() {
+        return String.format("Patricia Config v%s: %s", 
+            baseConfig.version, baseConfig.description);
     }
     
     /**
-     * double値を取得（OriginConfigの基底メソッドを使用）
+     * 設定値を動的に取得（拡張用）
+     * ConfigManagerからデフォルト値を取得、数値はここに書かない
      */
-    public double getDouble(String key, double defaultValue) {
-        return config.getDouble(key, defaultValue);
+    public double getCustomDouble(String key) {
+        return baseConfig.getDouble(key, getDefaultDouble(key));
     }
     
-    /**
-     * int値を取得（OriginConfigの基底メソッドを使用）
-     */
-    public int getInt(String key, int defaultValue) {
-        return config.getInt(key, defaultValue);
+    public int getCustomInt(String key) {
+        return baseConfig.getInt(key, getDefaultInt(key));
+    }
+    
+    public boolean getCustomBoolean(String key) {
+        return baseConfig.getBoolean(key, getDefaultBoolean(key));
+    }
+    
+    public String getCustomString(String key) {
+        return baseConfig.getString(key, getDefaultString(key));
     }
 }

@@ -2,23 +2,20 @@ package com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers;
 
 import com.mayvisscarlet.anotherworldsorigin.AnotherWorldsOrigin;
 import com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability;
-import com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants;
+import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.github.edwinmindcraft.apoli.api.IDynamicFeatureConfiguration;
-import io.github.edwinmindcraft.apoli.api.power.configuration.ConfiguredPower;
 import io.github.edwinmindcraft.apoli.api.power.factory.PowerFactory;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.biome.Biome;
 
 import java.util.UUID;
 
 /**
  * パトリシアの「揺らぐ事なき冬」パワーファクトリー
- * Origins Forge APIの正しい実装方式に従った独自Power
+ * PatriciaConstants削除対応版
  */
 public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterPowerFactory.Configuration> {
     
@@ -44,88 +41,22 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
     /**
      * Power設定データクラス（IDynamicFeatureConfiguration実装）
      */
-    public record Configuration(
+    public static record Configuration(
         boolean attackSpeedImmunity,
         boolean coldBiomeDefense,
         boolean affinityAttackBonus,
         boolean attackSpeedCompensation
     ) implements IDynamicFeatureConfiguration {
-        
-        @Override
-        public String getDescription() {
-            return "Patricia's Unwavering Winter passive ability";
-        }
+        // recordを使用することで自動的にgetterが生成される
+        // IDynamicFeatureConfigurationは抽象メソッドなし
     }
     
     /**
-     * Powerがティックごとに実行する処理
+     * 親和度に基づいた攻撃力ボーナスを静的に適用
      */
-    @Override
-    public void serverTick(Entity entity, ConfiguredPower<Configuration, ?> power) {
-        if (!(entity instanceof Player player)) return;
+    public static void updateAttackPowerBonus(Player player, Configuration config) {
+        if (player == null || config == null) return;
         
-        Configuration config = power.getConfiguration();
-        
-        // 5秒ごとに攻撃力を更新（パフォーマンス配慮）
-        if (player.tickCount % 100 == 0) {
-            updateAttackPowerBonus(player, config);
-        }
-        
-        // 10秒ごとに攻撃速度低下をクリーンアップ
-        if (config.attackSpeedImmunity() && player.tickCount % 200 == 0) {
-            if (player.hasEffect(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN)) {
-                player.removeEffect(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN);
-                AnotherWorldsOrigin.LOGGER.debug("Patricia {} cleaned up DIG_SLOWDOWN during tick", 
-                    player.getDisplayName().getString());
-            }
-        }
-    }
-    
-    /**
-     * Powerが追加された時の処理
-     */
-    @Override
-    public void onAdded(Entity entity, ConfiguredPower<Configuration, ?> power) {
-        if (!(entity instanceof Player player)) return;
-        
-        Configuration config = power.getConfiguration();
-        
-        // 既存の攻撃速度低下を除去
-        if (config.attackSpeedImmunity() && player.hasEffect(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN)) {
-            player.removeEffect(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN);
-            AnotherWorldsOrigin.LOGGER.info("Patricia {} initial cleanup: removed DIG_SLOWDOWN", 
-                player.getDisplayName().getString());
-        }
-        
-        // 攻撃力ボーナスを即座に適用
-        updateAttackPowerBonus(player, config);
-        
-        AnotherWorldsOrigin.LOGGER.info("Patricia {} Unwavering Winter power activated", 
-            player.getDisplayName().getString());
-    }
-    
-    /**
-     * Powerが除去された時の処理
-     */
-    @Override
-    public void onRemoved(Entity entity, ConfiguredPower<Configuration, ?> power) {
-        if (!(entity instanceof Player player)) return;
-        
-        // 攻撃力修飾子を除去
-        var attackAttribute = player.getAttribute(Attributes.ATTACK_DAMAGE);
-        if (attackAttribute != null) {
-            attackAttribute.removeModifier(AFFINITY_ATTACK_BONUS_UUID);
-            attackAttribute.removeModifier(ATTACK_SPEED_COMPENSATION_UUID);
-        }
-        
-        AnotherWorldsOrigin.LOGGER.info("Patricia {} Unwavering Winter power deactivated", 
-            player.getDisplayName().getString());
-    }
-    
-    /**
-     * 親和度に基づいた攻撃力ボーナスを更新
-     */
-    private void updateAttackPowerBonus(Player player, Configuration config) {
         AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
             int affinityLevel = affinityData.getAffinityData().getAffinityLevel();
             
@@ -138,9 +69,11 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                 attackAttribute.removeModifier(AFFINITY_ATTACK_BONUS_UUID);
                 attackAttribute.removeModifier(ATTACK_SPEED_COMPENSATION_UUID);
                 
+                var patriciaConfig = ConfigManager.getPatriciaConfig();
+                
                 // 親和度による基本攻撃力上昇
                 if (config.affinityAttackBonus()) {
-                    double affinityBonus = PatriciaConstants.calculateAffinityAttackBonus(affinityLevel);
+                    double affinityBonus = patriciaConfig.calculateAffinityAttackBonus(affinityLevel);
                     if (affinityBonus > 0) {
                         AttributeModifier affinityModifier = new AttributeModifier(
                             AFFINITY_ATTACK_BONUS_UUID,
@@ -154,7 +87,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                 
                 // 攻撃速度補償
                 if (config.attackSpeedCompensation()) {
-                    double speedCompensation = PatriciaConstants.calculateAttackSpeedCompensation(affinityLevel, currentAttackSpeed);
+                    double speedCompensation = patriciaConfig.calculateAttackSpeedCompensation(affinityLevel, currentAttackSpeed);
                     if (speedCompensation > 0) {
                         AttributeModifier compensationModifier = new AttributeModifier(
                             ATTACK_SPEED_COMPENSATION_UUID,
@@ -173,20 +106,40 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
     }
     
     /**
-     * ダメージ軽減の計算（Cold系バイオーム）
+     * 攻撃力修飾子のクリーンアップ（静的メソッド）
      */
-    public float calculateDamageReduction(Player player, Configuration config) {
-        if (!config.coldBiomeDefense()) return 1.0f;
+    public static void cleanupAttackModifiers(Player player) {
+        if (player == null) return;
+        
+        var attackAttribute = player.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (attackAttribute != null) {
+            attackAttribute.removeModifier(AFFINITY_ATTACK_BONUS_UUID);
+            attackAttribute.removeModifier(ATTACK_SPEED_COMPENSATION_UUID);
+        }
+        
+        AnotherWorldsOrigin.LOGGER.debug("Patricia {} attack modifiers cleaned up", 
+            player.getDisplayName().getString());
+    }
+    
+    /**
+     * ダメージ軽減の計算（静的メソッド）
+     */
+    public static float calculateDamageReduction(Player player, Configuration config) {
+        if (player == null || config == null || !config.coldBiomeDefense()) {
+            return 1.0f;
+        }
         
         // バイオーム温度を取得
-        Biome biome = player.level().getBiome(player.blockPosition()).value();
+        var biome = player.level().getBiome(player.blockPosition()).value();
         float temperature = biome.getBaseTemperature();
         
-        if (PatriciaConstants.isColdBiome(temperature)) {
+        var patriciaConfig = ConfigManager.getPatriciaConfig();
+        
+        if (patriciaConfig.isColdBiome(temperature)) {
             return AffinityCapability.getAffinityData(player)
                 .map(affinityData -> {
                     int affinityLevel = affinityData.getAffinityData().getAffinityLevel();
-                    double reduction = PatriciaConstants.calculateColdDamageReduction(affinityLevel);
+                    double reduction = patriciaConfig.calculateColdDamageReduction(affinityLevel);
                     return (float)(1.0 - reduction);
                 })
                 .orElse(1.0f);
@@ -196,9 +149,9 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
     }
     
     /**
-     * ポーション効果無効化の判定
+     * ポーション効果無効化の判定（静的メソッド）
      */
-    public boolean shouldBlockEffect(Player player, Configuration config) {
-        return config.attackSpeedImmunity();
+    public static boolean shouldBlockEffect(Player player, Configuration config) {
+        return config != null && config.attackSpeedImmunity();
     }
 }

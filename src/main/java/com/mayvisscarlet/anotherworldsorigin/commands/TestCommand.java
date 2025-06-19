@@ -1,6 +1,7 @@
 package com.mayvisscarlet.anotherworldsorigin.commands;
 
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.abilities.UnwaveringWinter;
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
@@ -10,10 +11,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.player.Player;
 
 /**
- * 拡張されたテスト用コマンド
- * パトリシアの能力テストを含む
+ * 統合されたテスト用コマンド
+ * 全てのテスト機能を一元管理
  */
 public class TestCommand {
     
@@ -21,10 +23,29 @@ public class TestCommand {
         dispatcher.register(Commands.literal("anwstest")
             .requires(source -> source.hasPermission(2))
             .executes(context -> {
-                context.getSource().sendSuccess(() -> Component.literal("§aAnother Worlds Origin コマンドが動作しています！"), false);
+                context.getSource().sendSuccess(() -> Component.literal("§aAnother Worlds Origin テストコマンドが動作しています！"), false);
+                showTestHelp(context.getSource());
                 return 1;
             })
+            .then(Commands.literal("help")
+                .executes(context -> {
+                    showTestHelp(context.getSource());
+                    return 1;
+                })
+            )
             .then(Commands.literal("patricia")
+                .then(Commands.literal("cold_test")
+                    .executes(context -> testColdDamageReduction(context.getSource(), context.getSource().getPlayerOrException()))
+                    .then(Commands.argument("player", EntityArgument.player())
+                        .executes(context -> testColdDamageReduction(context.getSource(), EntityArgument.getPlayer(context, "player")))
+                    )
+                )
+                .then(Commands.literal("damage_test")
+                    .executes(context -> testDamageReduction(context.getSource(), context.getSource().getPlayerOrException()))
+                    .then(Commands.argument("player", EntityArgument.player())
+                        .executes(context -> testDamageReduction(context.getSource(), EntityArgument.getPlayer(context, "player")))
+                    )
+                )
                 .then(Commands.literal("immunity")
                     .executes(context -> testAttackSpeedImmunity(context.getSource(), context.getSource().getPlayerOrException()))
                     .then(Commands.argument("player", EntityArgument.player())
@@ -44,7 +65,141 @@ public class TestCommand {
                     )
                 )
             )
+            // 将来の種族拡張用
+            .then(Commands.literal("yura")
+                .executes(context -> {
+                    context.getSource().sendFailure(Component.literal("§cYura abilities not implemented yet"));
+                    return 0;
+                })
+            )
+            .then(Commands.literal("carnis")
+                .executes(context -> {
+                    context.getSource().sendFailure(Component.literal("§cCarnis abilities not implemented yet"));
+                    return 0;
+                })
+            )
+            .then(Commands.literal("vorey")
+                .executes(context -> {
+                    context.getSource().sendFailure(Component.literal("§cVorey abilities not implemented yet"));
+                    return 0;
+                })
+            )
         );
+    }
+    
+    /**
+     * テストコマンドのヘルプ表示
+     */
+    private static void showTestHelp(CommandSourceStack source) {
+        source.sendSuccess(() -> Component.literal("§e=== Another Worlds Origin Test Commands ==="), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia cold_test §7- 寒冷バイオーム効果テスト"), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia damage_test §7- 実際のダメージ軽減テスト"), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia immunity §7- 攻撃速度無効化テスト"), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia status §7- パトリシア状態表示"), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia activate §7- 能力手動有効化"), false);
+        source.sendSuccess(() -> Component.literal("§7将来実装予定: yura, carnis, vorey"), false);
+    }
+    
+    /**
+     * 寒冷バイオーム効果テスト
+     */
+    private static int testColdDamageReduction(CommandSourceStack source, ServerPlayer player) {
+        if (!OriginHelper.isPatricia(player)) {
+            source.sendFailure(Component.literal("§cThis test is only for Patricia origin users"));
+            return 0;
+        }
+        
+        source.sendSuccess(() -> Component.literal("§b[Cold Test] Testing cold biome effects for " + player.getDisplayName().getString()), true);
+        
+        // バイオーム情報を表示
+        var biome = player.level().getBiome(player.blockPosition()).value();
+        float temperature = biome.getBaseTemperature();
+        boolean isCold = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.isColdBiome(temperature);
+        
+        player.sendSystemMessage(Component.literal(
+            String.format("§eCurrent Biome: §f%s", biome.toString())
+        ));
+        player.sendSystemMessage(Component.literal(
+            String.format("§eTemperature: §f%.2f §7(cold threshold: ≤%.2f)", 
+                temperature, 
+                com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.getColdBiomeTemperature())
+        ));
+        player.sendSystemMessage(Component.literal(
+            String.format("§eIs Cold Biome: %s", isCold ? "§aYES" : "§cNO")
+        ));
+        
+        // 親和度とダメージ軽減率を表示
+        com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
+            int level = affinityData.getAffinityData().getAffinityLevel();
+            double reduction = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.calculateColdDamageReduction(level);
+            
+            player.sendSystemMessage(Component.literal(
+                String.format("§eAffinity Level: §a%d", level)
+            ));
+            player.sendSystemMessage(Component.literal(
+                String.format("§eDamage Reduction: §a%.1f%% §7(max: %.1f%%)", 
+                    reduction * 100, 
+                    com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.getColdMaxDamageReduction())
+            ));
+            
+            if (isCold) {
+                player.sendSystemMessage(Component.literal(
+                    "§a[Cold Biome] Damage reduction is ACTIVE!"
+                ));
+                
+                // テストダメージを模擬
+                float testDamage = 10.0f;
+                var config = new UnwaveringWinterPowerFactory.Configuration(true, true, true, true);
+                float multiplier = UnwaveringWinterPowerFactory.calculateDamageReduction(player, config);
+                float reducedDamage = testDamage * multiplier;
+                
+                player.sendSystemMessage(Component.literal(
+                    String.format("§eSimulated Test: §c%.1f§7 damage → §a%.1f§7 damage", testDamage, reducedDamage)
+                ));
+                
+                source.sendSuccess(() -> Component.literal(String.format(
+                    "§a[Test Result] Damage reduction active: %.1f%% (%.1f → %.1f damage)", 
+                    (1.0f - multiplier) * 100, testDamage, reducedDamage)), false);
+            } else {
+                player.sendSystemMessage(Component.literal(
+                    "§c[Not Cold] Damage reduction is INACTIVE. Go to snowy biome!"
+                ));
+                source.sendSuccess(() -> Component.literal("§c[Test Result] Not in cold biome - no damage reduction"), false);
+            }
+        });
+        
+        return 1;
+    }
+    
+    /**
+     * 実際のダメージ軽減テスト
+     */
+    private static int testDamageReduction(CommandSourceStack source, ServerPlayer player) {
+        if (!OriginHelper.isPatricia(player)) {
+            source.sendFailure(Component.literal("§cThis test is only for Patricia origin users"));
+            return 0;
+        }
+        
+        // 現在の状況を確認
+        boolean isCold = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.isColdBiome(
+            player.level().getBiome(player.blockPosition()).value().getBaseTemperature()
+        );
+        
+        if (!isCold) {
+            source.sendFailure(Component.literal("§cYou must be in a cold biome for this test. Go to a snowy area first!"));
+            return 0;
+        }
+        
+        source.sendSuccess(() -> Component.literal("§b[Damage Test] Applying 5 magic damage in cold biome..."), true);
+        player.sendSystemMessage(Component.literal("§e[Damage Test] Applying 5 damage in cold biome..."));
+        
+        // 実際にダメージを与える
+        player.hurt(player.damageSources().magic(), 5.0f);
+        
+        source.sendSuccess(() -> Component.literal("§a[Damage Test] Damage applied! Check reduction logs."), false);
+        player.sendSystemMessage(Component.literal("§a[Damage Test] Damage applied! Check your health and the reduction logs."));
+        
+        return 1;
     }
     
     /**
@@ -56,7 +211,7 @@ public class TestCommand {
             return 0;
         }
         
-        source.sendSuccess(() -> Component.literal("§b[Test] " + player.getDisplayName().getString() + " の攻撃速度無効化をテストします..."), true);
+        source.sendSuccess(() -> Component.literal("§b[Immunity Test] Testing attack speed immunity for " + player.getDisplayName().getString()), true);
         
         // 現在の状態を記録
         boolean hadEffectBefore = player.hasEffect(MobEffects.DIG_SLOWDOWN);
@@ -70,10 +225,10 @@ public class TestCommand {
         
         // 結果を判定
         if (!hadEffectBefore && !hasEffectAfter) {
-            source.sendSuccess(() -> Component.literal("§a[Test Passed] 攻撃速度低下が正常に無効化されました"), true);
+            source.sendSuccess(() -> Component.literal("§a[Test Passed] 攻撃速度低下が正常に無効化されました"), false);
             player.sendSystemMessage(Component.literal("§a[Patricia Test] 攻撃速度無効化テスト成功"));
         } else if (hadEffectBefore && !hasEffectAfter) {
-            source.sendSuccess(() -> Component.literal("§a[Test Passed] 既存の攻撃速度低下が除去されました"), true);
+            source.sendSuccess(() -> Component.literal("§a[Test Passed] 既存の攻撃速度低下が除去されました"), false);
             player.sendSystemMessage(Component.literal("§a[Patricia Test] 既存効果除去テスト成功"));
         } else {
             source.sendFailure(Component.literal("§c[Test Failed] 攻撃速度低下が無効化されませんでした"));
