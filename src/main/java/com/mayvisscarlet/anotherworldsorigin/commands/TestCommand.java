@@ -1,6 +1,5 @@
 package com.mayvisscarlet.anotherworldsorigin.commands;
 
-import com.mayvisscarlet.anotherworldsorigin.origins.patricia.abilities.UnwaveringWinter;
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
@@ -16,7 +15,7 @@ import net.minecraft.world.entity.player.Player;
 
 /**
  * 統合されたテスト用コマンド
- * 全てのテスト機能を一元管理（PatriciaConstants削除対応版）
+ * 全てのテスト機能を一元管理（統合PowerFactory対応版）
  */
 public class TestCommand {
     
@@ -102,7 +101,7 @@ public class TestCommand {
     }
     
     /**
-     * 寒冷バイオーム効果テスト（PatriciaOriginConfig使用版）
+     * 寒冷バイオーム効果テスト（統合PowerFactory版）
      */
     private static int testColdDamageReduction(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -151,7 +150,7 @@ public class TestCommand {
                     "§a[Cold Biome] Damage reduction is ACTIVE!"
                 ));
                 
-                // テストダメージを模擬
+                // 統合PowerFactoryを使用してテストダメージを模擬
                 float testDamage = 10.0f;
                 var config = new UnwaveringWinterPowerFactory.Configuration(true, true, true, true);
                 float multiplier = UnwaveringWinterPowerFactory.calculateDamageReduction(player, config);
@@ -176,7 +175,7 @@ public class TestCommand {
     }
     
     /**
-     * 実際のダメージ軽減テスト（PatriciaOriginConfig使用版）
+     * 実際のダメージ軽減テスト（統合PowerFactory版）
      */
     private static int testDamageReduction(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -208,7 +207,7 @@ public class TestCommand {
     }
     
     /**
-     * 攻撃速度無効化テスト
+     * 攻撃速度無効化テスト（統合PowerFactory版）
      */
     private static int testAttackSpeedImmunity(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -244,7 +243,7 @@ public class TestCommand {
     }
     
     /**
-     * パトリシアの状態表示（PatriciaOriginConfig使用版）
+     * パトリシアの状態表示（統合PowerFactory版）
      */
     private static int showPatriciaStatus(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -335,7 +334,7 @@ public class TestCommand {
     }
     
     /**
-     * パトリシア能力の手動有効化
+     * パトリシア能力の手動有効化（統合PowerFactory版）
      */
     private static int activatePatriciaAbilities(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -344,7 +343,8 @@ public class TestCommand {
         }
         
         try {
-            UnwaveringWinter.onPatriciaActivated(player);
+            // 統合されたPowerFactoryの初期化メソッドを呼び出し
+            UnwaveringWinterPowerFactory.onPatriciaActivated(player);
             
             source.sendSuccess(() -> Component.literal("§a" + player.getDisplayName().getString() + " のパトリシア能力を手動で有効化しました"), true);
             player.sendSystemMessage(Component.literal("§b[Patricia] §f能力が手動で再有効化されました"));

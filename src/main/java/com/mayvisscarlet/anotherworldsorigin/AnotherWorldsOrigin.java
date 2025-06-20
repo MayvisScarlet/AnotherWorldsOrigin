@@ -7,7 +7,7 @@ import com.mayvisscarlet.anotherworldsorigin.config.ConfigInitializer;
 import com.mayvisscarlet.anotherworldsorigin.events.IntegratedEventHandler;
 import com.mayvisscarlet.anotherworldsorigin.events.SkillExecutionEventHandler;
 import com.mayvisscarlet.anotherworldsorigin.network.ModNetworking;
-import com.mayvisscarlet.anotherworldsorigin.origins.patricia.abilities.UnwaveringWinter;
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.registry.ModPowerTypes;
 import com.mayvisscarlet.anotherworldsorigin.test.DependencyTest;
 import net.minecraft.world.entity.player.Player;
@@ -41,15 +41,16 @@ public class AnotherWorldsOrigin {
         // ForgeイベントバスにMODクラス自体を登録（コマンド登録用&イベント処理用）
         MinecraftForge.EVENT_BUS.register(this);
         
-        // イベントハンドラーを登録
+        // 統合後のイベントハンドラーを登録
         MinecraftForge.EVENT_BUS.register(IntegratedEventHandler.class);
-        MinecraftForge.EVENT_BUS.register(UnwaveringWinter.class);
+        MinecraftForge.EVENT_BUS.register(UnwaveringWinterPowerFactory.EventHandler.class);
         MinecraftForge.EVENT_BUS.register(SkillExecutionEventHandler.class);
 
         // ネットワークパケット登録
         ModNetworking.registerPackets();
         
         LOGGER.info("Another Worlds Origin - Loading...");
+        LOGGER.info("=== REFACTORED VERSION - Patricia Abilities Unified ===");
         
         // 依存関係チェックを実行
         DependencyTest.performBasicDependencyCheck();
@@ -66,6 +67,7 @@ public class AnotherWorldsOrigin {
         LOGGER.info("Affinity system initialized!");
         LOGGER.info("JSON config system initialized!");
         LOGGER.info("Custom PowerFactories registered!");
+        LOGGER.info("=== UNIFIED PATRICIA SYSTEM READY ===");
     }
     
     /**
