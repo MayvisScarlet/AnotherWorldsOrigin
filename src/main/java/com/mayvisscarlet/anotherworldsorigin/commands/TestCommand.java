@@ -2,6 +2,7 @@ package com.mayvisscarlet.anotherworldsorigin.commands;
 
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.abilities.UnwaveringWinter;
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
+import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
@@ -15,7 +16,7 @@ import net.minecraft.world.entity.player.Player;
 
 /**
  * 統合されたテスト用コマンド
- * 全てのテスト機能を一元管理
+ * 全てのテスト機能を一元管理（PatriciaConstants削除対応版）
  */
 public class TestCommand {
     
@@ -101,7 +102,7 @@ public class TestCommand {
     }
     
     /**
-     * 寒冷バイオーム効果テスト
+     * 寒冷バイオーム効果テスト（PatriciaOriginConfig使用版）
      */
     private static int testColdDamageReduction(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -111,10 +112,13 @@ public class TestCommand {
         
         source.sendSuccess(() -> Component.literal("§b[Cold Test] Testing cold biome effects for " + player.getDisplayName().getString()), true);
         
+        // 設定を取得
+        var patriciaConfig = ConfigManager.getPatriciaConfig();
+        
         // バイオーム情報を表示
         var biome = player.level().getBiome(player.blockPosition()).value();
         float temperature = biome.getBaseTemperature();
-        boolean isCold = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.isColdBiome(temperature);
+        boolean isCold = patriciaConfig.isColdBiome(temperature);
         
         player.sendSystemMessage(Component.literal(
             String.format("§eCurrent Biome: §f%s", biome.toString())
@@ -122,7 +126,7 @@ public class TestCommand {
         player.sendSystemMessage(Component.literal(
             String.format("§eTemperature: §f%.2f §7(cold threshold: ≤%.2f)", 
                 temperature, 
-                com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.getColdBiomeTemperature())
+                patriciaConfig.getColdTemperatureThreshold())
         ));
         player.sendSystemMessage(Component.literal(
             String.format("§eIs Cold Biome: %s", isCold ? "§aYES" : "§cNO")
@@ -131,7 +135,7 @@ public class TestCommand {
         // 親和度とダメージ軽減率を表示
         com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
             int level = affinityData.getAffinityData().getAffinityLevel();
-            double reduction = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.calculateColdDamageReduction(level);
+            double reduction = patriciaConfig.calculateColdDamageReduction(level);
             
             player.sendSystemMessage(Component.literal(
                 String.format("§eAffinity Level: §a%d", level)
@@ -139,7 +143,7 @@ public class TestCommand {
             player.sendSystemMessage(Component.literal(
                 String.format("§eDamage Reduction: §a%.1f%% §7(max: %.1f%%)", 
                     reduction * 100, 
-                    com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.getColdMaxDamageReduction())
+                    patriciaConfig.getColdMaxDamageReduction())
             ));
             
             if (isCold) {
@@ -172,7 +176,7 @@ public class TestCommand {
     }
     
     /**
-     * 実際のダメージ軽減テスト
+     * 実際のダメージ軽減テスト（PatriciaOriginConfig使用版）
      */
     private static int testDamageReduction(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
@@ -181,7 +185,8 @@ public class TestCommand {
         }
         
         // 現在の状況を確認
-        boolean isCold = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.isColdBiome(
+        var patriciaConfig = ConfigManager.getPatriciaConfig();
+        boolean isCold = patriciaConfig.isColdBiome(
             player.level().getBiome(player.blockPosition()).value().getBaseTemperature()
         );
         
@@ -239,13 +244,16 @@ public class TestCommand {
     }
     
     /**
-     * パトリシアの状態表示
+     * パトリシアの状態表示（PatriciaOriginConfig使用版）
      */
     private static int showPatriciaStatus(CommandSourceStack source, ServerPlayer player) {
         if (!OriginHelper.isPatricia(player)) {
             source.sendFailure(Component.literal("§c指定されたプレイヤーはパトリシア種族ではありません"));
             return 0;
         }
+        
+        // 設定を取得
+        var patriciaConfig = ConfigManager.getPatriciaConfig();
         
         // 基本情報
         source.sendSuccess(() -> Component.literal("§b=== " + player.getDisplayName().getString() + " のパトリシア状態 ==="), false);
@@ -258,6 +266,29 @@ public class TestCommand {
                 data.getAffinityLevel(),
                 data.getCurrentLevelPoints(),
                 (double)data.getPointsToNextLevel()
+            )), false);
+            
+            // 攻撃力ボーナス計算
+            double affinityBonus = patriciaConfig.calculateAffinityAttackBonus(data.getAffinityLevel());
+            if (affinityBonus > 0) {
+                source.sendSuccess(() -> Component.literal(String.format(
+                    "§e攻撃力ボーナス: §a+%.2f §7(親和度効果)",
+                    affinityBonus
+                )), false);
+            }
+            
+            // Cold系ダメージ軽減
+            double coldReduction = patriciaConfig.calculateColdDamageReduction(data.getAffinityLevel());
+            source.sendSuccess(() -> Component.literal(String.format(
+                "§eCold軽減: §a%.1f%% §7(max: %.1f%%)",
+                coldReduction * 100, patriciaConfig.getColdMaxDamageReduction()
+            )), false);
+            
+            // Fire系ダメージ増加
+            double fireMultiplier = patriciaConfig.calculateFireDamageMultiplier(data.getAffinityLevel());
+            source.sendSuccess(() -> Component.literal(String.format(
+                "§cFire倍率: §c%.2fx §7(min: %.2fx)",
+                fireMultiplier, patriciaConfig.getFireMinMultiplier()
             )), false);
         });
         
@@ -272,8 +303,8 @@ public class TestCommand {
         
         // バイオーム情報
         float biomeTemp = player.level().getBiome(player.blockPosition()).value().getBaseTemperature();
-        boolean isCold = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.isColdBiome(biomeTemp);
-        boolean isHot = com.mayvisscarlet.anotherworldsorigin.origins.patricia.PatriciaConstants.isHotBiome(biomeTemp);
+        boolean isCold = patriciaConfig.isColdBiome(biomeTemp);
+        boolean isHot = patriciaConfig.isHotBiome(biomeTemp);
         
         String biomeType = isCold ? "§bCold" : isHot ? "§cHot" : "§7Normal";
         source.sendSuccess(() -> Component.literal(String.format(
@@ -287,6 +318,18 @@ public class TestCommand {
             "§e採掘速度低下: %s",
             hasSlowdown ? "§c有効" : "§a無効化済み"
         )), false);
+        
+        // マイルストーン情報
+        com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
+            int level = affinityData.getAffinityData().getAffinityLevel();
+            boolean isHighAffinity = patriciaConfig.isHighAffinityActive(level);
+            
+            source.sendSuccess(() -> Component.literal(String.format(
+                "§eマイルストーン: §7高親和度(Lv.%d) %s",
+                patriciaConfig.getHighAffinityThreshold(),
+                isHighAffinity ? "§a達成" : "§c未達成"
+            )), false);
+        });
         
         return 1;
     }

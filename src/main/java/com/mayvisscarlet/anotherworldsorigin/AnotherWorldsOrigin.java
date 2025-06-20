@@ -5,6 +5,8 @@ import com.mayvisscarlet.anotherworldsorigin.commands.AffinityCommand;
 import com.mayvisscarlet.anotherworldsorigin.commands.TestCommand;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigInitializer;
 import com.mayvisscarlet.anotherworldsorigin.events.IntegratedEventHandler;
+import com.mayvisscarlet.anotherworldsorigin.events.SkillExecutionEventHandler;
+import com.mayvisscarlet.anotherworldsorigin.network.ModNetworking;
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.abilities.UnwaveringWinter;
 import com.mayvisscarlet.anotherworldsorigin.registry.ModPowerTypes;
 import com.mayvisscarlet.anotherworldsorigin.test.DependencyTest;
@@ -42,6 +44,10 @@ public class AnotherWorldsOrigin {
         // イベントハンドラーを登録
         MinecraftForge.EVENT_BUS.register(IntegratedEventHandler.class);
         MinecraftForge.EVENT_BUS.register(UnwaveringWinter.class);
+        MinecraftForge.EVENT_BUS.register(SkillExecutionEventHandler.class);
+
+        // ネットワークパケット登録
+        ModNetworking.registerPackets();
         
         LOGGER.info("Another Worlds Origin - Loading...");
         
@@ -68,38 +74,6 @@ public class AnotherWorldsOrigin {
     private void registerCapabilities(final RegisterCapabilitiesEvent event) {
         event.register(AffinityCapability.IAffinityData.class);
         LOGGER.info("Affinity capability registered!");
-    }
-    
-    /**
-     * プレイヤー複製時のデータコピー（死亡復活時の親和度保持）
-     */
-    @SubscribeEvent
-    public void onPlayerCloned(PlayerEvent.Clone event) {
-        // 死亡時のみ親和度データを保持（wasDeathフラグチェック）
-        if (event.isWasDeath()) {
-            Player original = event.getOriginal();
-            Player newPlayer = event.getEntity();
-            
-            original.getCapability(AffinityCapability.AFFINITY_DATA).ifPresent(oldData -> {
-                newPlayer.getCapability(AffinityCapability.AFFINITY_DATA).ifPresent(newData -> {
-                    // データをコピー
-                    var oldAffinityData = oldData.getAffinityData();
-                    var newAffinityData = new com.mayvisscarlet.anotherworldsorigin.growth.AffinityData();
-                    
-                    // 詳細なデータコピー
-                    newAffinityData.addAffinityPoints(oldAffinityData.getTotalAffinityPoints());
-                    newData.setAffinityData(newAffinityData);
-                    
-                    LOGGER.info("Death clone: Preserved affinity data for {}: Level={}, Total={}", 
-                        newPlayer.getDisplayName().getString(),
-                        newData.getAffinityData().getAffinityLevel(),
-                        newData.getAffinityData().getTotalAffinityPoints());
-                });
-            });
-        } else {
-            LOGGER.debug("Non-death clone event for {}, skipping affinity preservation", 
-                event.getEntity().getDisplayName().getString());
-        }
     }
     
     /**

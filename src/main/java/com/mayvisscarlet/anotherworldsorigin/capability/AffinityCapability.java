@@ -11,9 +11,14 @@ import net.minecraftforge.common.capabilities.*;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -23,6 +28,9 @@ import javax.annotation.Nullable;
  */
 @Mod.EventBusSubscriber(modid = AnotherWorldsOrigin.MODID)
 public class AffinityCapability {
+
+    // 死亡時のデータ一時保存用
+    private static final Map<UUID, CompoundTag> DEATH_DATA_CACHE = new ConcurrentHashMap<>();
     
     public static final Capability<IAffinityData> AFFINITY_DATA = 
         CapabilityManager.get(new CapabilityToken<>() {});
@@ -56,21 +64,64 @@ public class AffinityCapability {
             }
         }
     }
+
+        /**
+     * プレイヤー死亡時にデータを事前保存
+     */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onPlayerDeath(LivingDeathEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            player.getCapability(AFFINITY_DATA).ifPresent(affinityData -> {
+                UUID playerId = player.getUUID();
+                CompoundTag savedData = affinityData.serializeNBT();
+                DEATH_DATA_CACHE.put(playerId, savedData);
+                
+                AnotherWorldsOrigin.LOGGER.info("Saved affinity data for death: {} - Level: {}, Total: {}", 
+                    player.getDisplayName().getString(),
+                    affinityData.getAffinityData().getAffinityLevel(),
+                    affinityData.getAffinityData().getTotalAffinityPoints());
+            });
+        }
+    }
     
     /**
-     * プレイヤー複製時のデータコピー（死亡復活時のみ）
+     * プレイヤー複製時のデータ復元（修正版）
      */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.NORMAL)
     public static void onPlayerCloned(PlayerEvent.Clone event) {
         if (event.isWasDeath()) {
-            event.getOriginal().getCapability(AFFINITY_DATA).ifPresent(oldData -> {
+            UUID playerId = event.getEntity().getUUID();
+            
+            AnotherWorldsOrigin.LOGGER.warn("=== DEATH CLONE DEBUG ===");
+            AnotherWorldsOrigin.LOGGER.warn("Player: {}", event.getEntity().getDisplayName().getString());
+            
+            // キャッシュからデータを取得
+            CompoundTag savedData = DEATH_DATA_CACHE.get(playerId);
+            if (savedData != null) {
                 event.getEntity().getCapability(AFFINITY_DATA).ifPresent(newData -> {
-                    CompoundTag nbt = oldData.serializeNBT();
-                    newData.deserializeNBT(nbt);
-                    AnotherWorldsOrigin.LOGGER.debug("Copied affinity data on death. Level: {}", 
-                        newData.getAffinityData().getAffinityLevel());
+                    AnotherWorldsOrigin.LOGGER.warn("NEW DATA BEFORE - Level: {}, Total: {}", 
+                        newData.getAffinityData().getAffinityLevel(),
+                        newData.getAffinityData().getTotalAffinityPoints());
+                    
+                    // キャッシュデータを復元
+                    newData.deserializeNBT(savedData);
+                    
+                    AnotherWorldsOrigin.LOGGER.warn("NEW DATA AFTER - Level: {}, Total: {}", 
+                        newData.getAffinityData().getAffinityLevel(),
+                        newData.getAffinityData().getTotalAffinityPoints());
+                    
+                    AnotherWorldsOrigin.LOGGER.info("Restored affinity data from cache: {} - Level: {}, Total: {}", 
+                        event.getEntity().getDisplayName().getString(),
+                        newData.getAffinityData().getAffinityLevel(),
+                        newData.getAffinityData().getTotalAffinityPoints());
                 });
-            });
+                
+                // キャッシュをクリーンアップ
+                DEATH_DATA_CACHE.remove(playerId);
+            } else {
+                AnotherWorldsOrigin.LOGGER.warn("No cached affinity data found for player: {}", 
+                    event.getEntity().getDisplayName().getString());
+            }
         }
     }
     
@@ -139,6 +190,18 @@ public class AffinityCapability {
         @Override
         public void deserializeNBT(CompoundTag nbt) {
             affinityData.deserializeNBT(nbt);
+        }
+    }
+
+        /**
+     * プレイヤーログアウト時のキャッシュクリーンアップ
+     */
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        UUID playerId = event.getEntity().getUUID();
+        if (DEATH_DATA_CACHE.remove(playerId) != null) {
+            AnotherWorldsOrigin.LOGGER.debug("Cleaned up cached affinity data for logged out player: {}", 
+                event.getEntity().getDisplayName().getString());
         }
     }
 }
