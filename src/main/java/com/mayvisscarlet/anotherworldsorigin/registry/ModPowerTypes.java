@@ -2,6 +2,7 @@ package com.mayvisscarlet.anotherworldsorigin.registry;
 
 import com.mayvisscarlet.anotherworldsorigin.AnotherWorldsOrigin;
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.HeatVulnerabilityPowerFactory;
 import io.github.edwinmindcraft.apoli.api.power.factory.PowerFactory;
 import io.github.edwinmindcraft.apoli.api.registry.ApoliRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -24,6 +25,12 @@ public class ModPowerTypes {
         POWER_FACTORIES.register("unwavering_winter", UnwaveringWinterPowerFactory::new);
     
     /**
+     * パトリシアの「溶けた氷が固まるまで」PowerFactory
+     */
+    public static final RegistryObject<PowerFactory<HeatVulnerabilityPowerFactory.Configuration>> HEAT_VULNERABILITY = 
+        POWER_FACTORIES.register("heat_vulnerability", HeatVulnerabilityPowerFactory::new);
+    
+    /**
      * PowerFactory登録の初期化
      */
     public static void register(IEventBus modEventBus) {
@@ -36,5 +43,9 @@ public class ModPowerTypes {
      */
     public static ResourceLocation getUnwaveringWinterId() {
         return ResourceLocation.fromNamespaceAndPath(AnotherWorldsOrigin.MODID, "unwavering_winter");
+    }
+    
+    public static ResourceLocation getHeatVulnerabilityId() {
+        return ResourceLocation.fromNamespaceAndPath(AnotherWorldsOrigin.MODID, "heat_vulnerability");
     }
 }

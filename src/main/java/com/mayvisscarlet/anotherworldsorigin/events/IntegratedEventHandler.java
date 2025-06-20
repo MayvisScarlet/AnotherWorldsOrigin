@@ -3,6 +3,7 @@ package com.mayvisscarlet.anotherworldsorigin.events;
 import com.mayvisscarlet.anotherworldsorigin.AnotherWorldsOrigin;
 import com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability;
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.HeatVulnerabilityPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.player.PlayerXpEvent;
@@ -12,7 +13,7 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * 統合イベントハンドラー
  * 親和度システムとパトリシア能力を統合管理
- * （UnwaveringWinter.java削除対応版）
+ * （クリーンアーキテクチャ対応版 - 両PowerFactoryを呼び出し）
  */
 @Mod.EventBusSubscriber(modid = AnotherWorldsOrigin.MODID)
 public class IntegratedEventHandler {
@@ -47,9 +48,10 @@ public class IntegratedEventHandler {
                     )
                 );
                 
-                // パトリシアの場合、統合されたPowerFactoryの特別処理を実行
+                // パトリシアの場合、両方のPowerFactoryの特別処理を実行
                 if (OriginHelper.isPatricia(player)) {
                     UnwaveringWinterPowerFactory.onAffinityLevelUp(player, newLevel, oldLevel);
+                    HeatVulnerabilityPowerFactory.onAffinityLevelUp(player, newLevel, oldLevel);
                 }
                 
                 AnotherWorldsOrigin.LOGGER.info("Player {} affinity level up: {} -> {}", 

@@ -1,6 +1,7 @@
 {
   "powers": [
-    "anotherworldsorigin:unwavering_winter"
+    "anotherworldsorigin:unwavering_winter",
+    "anotherworldsorigin:heat_vulnerability"
   ],
   "icon": {
     "item": "minecraft:blue_ice"
@@ -8,5 +9,5 @@
   "order": 10,
   "impact": 2,
   "name": "Patricia",
-  "description": "氷の力を操る強力な戦士。"
+  "description": "氷の力を操る強力な戦士。冬の恩恵を受けるが、熱に弱い。"
 }

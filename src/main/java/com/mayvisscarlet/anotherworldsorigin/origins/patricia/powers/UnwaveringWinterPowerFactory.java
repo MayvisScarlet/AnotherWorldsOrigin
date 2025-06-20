@@ -20,6 +20,7 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -28,8 +29,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * パトリシアの「揺らぐ事なき冬」統合PowerFactory
- * 全てのパッシブ能力を一元管理
+ * パトリシアの「揺らぐ事なき冬」PowerFactory
+ * 攻撃速度無効化、Cold系優位性、親和度攻撃力ボーナスを管理
  */
 public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterPowerFactory.Configuration> {
     
@@ -172,9 +173,9 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
     public static class EffectCalculator {
         
         /**
-         * ダメージ軽減の計算
+         * Cold系バイオームでのダメージ軽減の計算
          */
-        public static float calculateDamageReduction(Player player, Configuration config) {
+        public static float calculateColdDamageReduction(Player player, Configuration config) {
             if (player == null || config == null || !config.coldBiomeDefense()) {
                 return 1.0f;
             }
@@ -299,10 +300,10 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
     }
     
     /**
-     * ダメージ軽減の計算（従来API）
+     * Cold系ダメージ軽減の計算（従来API）
      */
     public static float calculateDamageReduction(Player player, Configuration config) {
-        return EffectCalculator.calculateDamageReduction(player, config);
+        return EffectCalculator.calculateColdDamageReduction(player, config);
     }
     
     /**
@@ -476,7 +477,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
         /**
          * Cold系バイオームでのダメージ軽減
          */
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.NORMAL)
         public static void onLivingHurt(LivingHurtEvent event) {
             if (!(event.getEntity() instanceof Player player)) {
                 return;
@@ -486,7 +487,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                 return;
             }
             
-            float damageReduction = EffectCalculator.calculateDamageReduction(player, DEFAULT_CONFIG);
+            float damageReduction = EffectCalculator.calculateColdDamageReduction(player, DEFAULT_CONFIG);
             
             if (damageReduction < 1.0f) {
                 float originalDamage = event.getAmount();

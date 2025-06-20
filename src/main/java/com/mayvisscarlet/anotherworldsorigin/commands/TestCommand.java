@@ -1,5 +1,6 @@
 package com.mayvisscarlet.anotherworldsorigin.commands;
 
+import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.HeatVulnerabilityPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringWinterPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
@@ -64,6 +65,12 @@ public class TestCommand {
                         .executes(context -> activatePatriciaAbilities(context.getSource(), EntityArgument.getPlayer(context, "player")))
                     )
                 )
+                .then(Commands.literal("heat_test")
+                    .executes(context -> testHeatVulnerability(context.getSource(), context.getSource().getPlayerOrException()))
+                    .then(Commands.argument("player", EntityArgument.player())
+                        .executes(context -> testHeatVulnerability(context.getSource(), EntityArgument.getPlayer(context, "player")))
+                    )
+                )
             )
             // 将来の種族拡張用
             .then(Commands.literal("yura")
@@ -97,6 +104,7 @@ public class TestCommand {
         source.sendSuccess(() -> Component.literal("§b/anwstest patricia immunity §7- 攻撃速度無効化テスト"), false);
         source.sendSuccess(() -> Component.literal("§b/anwstest patricia status §7- パトリシア状態表示"), false);
         source.sendSuccess(() -> Component.literal("§b/anwstest patricia activate §7- 能力手動有効化"), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia heat_test §7- 熱ダメージ脆弱性テスト"), false);
         source.sendSuccess(() -> Component.literal("§7将来実装予定: yura, carnis, vorey"), false);
     }
     
@@ -354,5 +362,81 @@ public class TestCommand {
             source.sendFailure(Component.literal("§c能力の有効化中にエラーが発生しました: " + e.getMessage()));
             return 0;
         }
+    }
+    
+    /**
+     * 熱ダメージ脆弱性テスト（新規実装）
+     */
+    private static int testHeatVulnerability(CommandSourceStack source, ServerPlayer player) {
+        if (!OriginHelper.isPatricia(player)) {
+            source.sendFailure(Component.literal("§cThis test is only for Patricia origin users"));
+            return 0;
+        }
+        
+        source.sendSuccess(() -> Component.literal("§c[Heat Test] Testing heat damage vulnerability for " + player.getDisplayName().getString()), true);
+        
+        // 設定を取得
+        var patriciaConfig = ConfigManager.getPatriciaConfig();
+        
+        // 親和度と倍率を表示
+        com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
+            int level = affinityData.getAffinityData().getAffinityLevel();
+            double multiplier = patriciaConfig.calculateFireDamageMultiplier(level);
+            
+            player.sendSystemMessage(Component.literal(
+                String.format("§eAffinity Level: §a%d", level)
+            ));
+            player.sendSystemMessage(Component.literal(
+                String.format("§cHeat Damage Multiplier: §c%.2fx §7(base: %.2fx, min: %.2fx)", 
+                    multiplier, 
+                    patriciaConfig.getFireBaseMultiplier(),
+                    patriciaConfig.getFireMinMultiplier())
+            ));
+            
+            // テスト用の火炎ダメージを適用
+            float testDamage = 5.0f;
+            player.sendSystemMessage(Component.literal(
+                String.format("§e[Heat Test] Applying %.1f fire damage...", testDamage)
+            ));
+            
+            // 実際に火炎ダメージを与える
+            player.hurt(player.damageSources().onFire(), testDamage);
+            
+            // 予想結果を表示
+            float expectedDamage = testDamage * (float)multiplier;
+            player.sendSystemMessage(Component.literal(
+                String.format("§e[Expected Result] §c%.1f§7 damage → §c%.1f§7 damage", 
+                    testDamage, expectedDamage)
+            ));
+            
+            source.sendSuccess(() -> Component.literal(String.format(
+                "§c[Test Result] Applied fire damage with %.2fx multiplier (Level %d)", 
+                multiplier, level)), false);
+        });
+        
+        // 熱ダメージソース判定テスト
+        player.sendSystemMessage(Component.literal("§e=== Heat Damage Source Tests ==="));
+        
+        // 各種熱ダメージソースのテスト
+        testHeatDamageSource(player, player.damageSources().onFire(), "ON_FIRE");
+        testHeatDamageSource(player, player.damageSources().inFire(), "IN_FIRE");
+        testHeatDamageSource(player, player.damageSources().lava(), "LAVA");
+        testHeatDamageSource(player, player.damageSources().hotFloor(), "HOT_FLOOR");
+        testHeatDamageSource(player, player.damageSources().magic(), "MAGIC (non-heat)");
+        
+        source.sendSuccess(() -> Component.literal("§c[Heat Test] Heat damage vulnerability test completed"), false);
+        return 1;
+    }
+    
+    /**
+     * 熱ダメージソース判定のテストヘルパー
+     */
+    private static void testHeatDamageSource(Player player, net.minecraft.world.damagesource.DamageSource damageSource, String sourceName) {
+        boolean isHeat = HeatVulnerabilityPowerFactory.HeatDamageCalculator.isHeatDamage(damageSource);
+        player.sendSystemMessage(Component.literal(
+            String.format("§e%s: %s", 
+                sourceName, 
+                isHeat ? "§cHEAT" : "§7NOT HEAT")
+        ));
     }
 }
