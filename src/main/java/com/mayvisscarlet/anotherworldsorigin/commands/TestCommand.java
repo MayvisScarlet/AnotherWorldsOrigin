@@ -76,6 +76,12 @@ public class TestCommand {
                                         context.getSource().getPlayerOrException()))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> testBiomeEffects(context.getSource(),
+                                                EntityArgument.getPlayer(context, "player")))))
+                        .then(Commands.literal("recovery_test")
+                                .executes(context -> testRecoveryBonus(context.getSource(),
+                                        context.getSource().getPlayerOrException()))
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> testRecoveryBonus(context.getSource(),
                                                 EntityArgument.getPlayer(context, "player"))))))
                 // 将来の種族拡張用
                 .then(Commands.literal("yura")
@@ -108,6 +114,7 @@ public class TestCommand {
         source.sendSuccess(() -> Component.literal("§b/anwstest patricia activate §7- 能力手動有効化"), false);
         source.sendSuccess(() -> Component.literal("§b/anwstest patricia heat_test §7- 熱ダメージ脆弱性テスト"), false);
         source.sendSuccess(() -> Component.literal("§b/anwstest patricia biome_test §7- バイオーム効果テスト"), false);
+        source.sendSuccess(() -> Component.literal("§b/anwstest patricia recovery_test §7- 回復ボーナステスト"), false);
         source.sendSuccess(() -> Component.literal("§7将来実装予定: yura, carnis, vorey"), false);
     }
 
@@ -513,5 +520,164 @@ public class TestCommand {
 
         source.sendSuccess(() -> Component.literal("§6[Biome Test] Biome effects test completed"), false);
         return 1;
+    }
+
+    /**
+     * 回復ボーナステスト（Phase 3新規実装）
+     */
+    private static int testRecoveryBonus(CommandSourceStack source, ServerPlayer player) {
+        if (!OriginHelper.isPatricia(player)) {
+            source.sendFailure(Component.literal("§cThis test is only for Patricia origin users"));
+            return 0;
+        }
+
+        source.sendSuccess(
+            () -> Component.literal(
+                "§a[Recovery Test] Testing recovery bonus for " + player.getDisplayName().getString()),
+            true);
+
+        // 現在の状況表示
+        var config = ConfigManager.getPatriciaConfig();
+        com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
+            int level = affinityData.getAffinityData().getAffinityLevel();
+            
+            // 設定値表示
+            int duration = config.calculateRecoveryDuration(level);
+            double increase = config.calculateRecoveryIncrease(level);
+            boolean isHighAffinity = config.isHighAffinityActive(level);
+            
+            player.sendSystemMessage(Component.literal(
+                String.format("§eAffinity Level: §a%d", level)));
+            player.sendSystemMessage(Component.literal(
+                String.format("§eRecovery Duration: §a%d秒", duration / 20)));
+            player.sendSystemMessage(Component.literal(
+                String.format("§eRecovery Increase: §a%.1f%%", increase * 100)));
+            player.sendSystemMessage(Component.literal(
+                String.format("§eHigh Affinity: %s", isHighAffinity ? "§aYES" : "§cNO")));
+            
+            // 既存のボーナス状態確認
+            var existingBonus = HeatVulnerabilityPowerFactory.PlayerStateManager.getRecoveryBonusData(player);
+            if (existingBonus != null) {
+                player.sendSystemMessage(Component.literal(
+                    String.format("§e[Current Bonus] §a%.1fx §7for %d ticks (source: %s)",
+                        existingBonus.getBonusMultiplier(),
+                        existingBonus.getRemainingTicks(),
+                        existingBonus.getTriggerSource())));
+            } else {
+                player.sendSystemMessage(Component.literal("§e[Current Bonus] §7None active"));
+            }
+            
+            // 各発動条件をテスト
+            testRecoveryTriggers(player, source);
+        });
+
+        return 1;
+    }
+
+    /**
+     * 回復ボーナス発動トリガーのテスト
+     */
+    private static void testRecoveryTriggers(Player player, CommandSourceStack source) {
+        // 火炎ダメージ発動テスト
+        player.sendSystemMessage(Component.literal("§e=== Recovery Trigger Tests ==="));
+        
+        // 1. 火炎ダメージ発動
+        player.sendSystemMessage(Component.literal("§c[Test 1] Fire damage trigger"));
+        HeatVulnerabilityPowerFactory.RecoveryBonusManager.triggerRecoveryBonus(player, "fire_test");
+        
+        // 2秒後に状態確認（Minecraft Serverのスケジューラーを使用）
+        if (player.getServer() != null) {
+            // 実際のサーバースケジューラーでの遅延実行
+            player.getServer().execute(() -> {
+                try {
+                    Thread.sleep(2000); // 2秒待機
+                    var bonusData = HeatVulnerabilityPowerFactory.PlayerStateManager.getRecoveryBonusData(player);
+                    if (bonusData != null) {
+                        player.sendSystemMessage(Component.literal(
+                            String.format("§a[Test 1 Result] Active: %.1fx for %ds", 
+                                bonusData.getBonusMultiplier(),
+                                bonusData.getRemainingTicks() / 20)));
+                    } else {
+                        player.sendSystemMessage(Component.literal("§c[Test 1 Result] No active bonus"));
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+        
+        // 2. Hot系バイオーム滞在発動テスト
+        player.sendSystemMessage(Component.literal("§6[Test 2] Hot biome endurance trigger"));
+        HeatVulnerabilityPowerFactory.RecoveryBonusManager.triggerRecoveryBonus(player, "hot_biome_endurance_test");
+        
+        // 3. 高親和度Cold系発動テスト
+        var config = ConfigManager.getPatriciaConfig();
+        com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
+            int level = affinityData.getAffinityData().getAffinityLevel();
+            var biome = player.level().getBiome(player.blockPosition()).value();
+            boolean isCold = config.isColdBiome(biome.getBaseTemperature());
+            
+            player.sendSystemMessage(Component.literal(
+                String.format("§e[Test 3 Info] Level: %d, High Affinity: %s, Cold Biome: %s", 
+                    level, 
+                    config.isHighAffinityActive(level) ? "YES" : "NO",
+                    isCold ? "YES" : "NO")));
+            
+            if (config.isHighAffinityActive(level)) {
+                if (isCold) {
+                    player.sendSystemMessage(Component.literal("§b[Test 3] High affinity cold bonus trigger"));
+                    HeatVulnerabilityPowerFactory.RecoveryBonusManager.triggerRecoveryBonus(player, "high_affinity_cold_test");
+                } else {
+                    player.sendSystemMessage(Component.literal("§7[Test 3] Not in cold biome - move to snowy area"));
+                }
+            } else {
+                player.sendSystemMessage(Component.literal("§7[Test 3] High affinity not available (Level " + level + " < " + config.getHighAffinityThreshold() + ")"));
+            }
+        });
+        
+        // 4. 総合条件チェックテスト
+        player.sendSystemMessage(Component.literal("§e[Test 4] Comprehensive condition check"));
+        
+        // 現在の条件を確認して適切なメッセージを表示
+        var currentBiome = player.level().getBiome(player.blockPosition()).value();
+        float temp = currentBiome.getBaseTemperature();
+        boolean isCold = config.isColdBiome(temp);
+        boolean isHot = config.isHotBiome(temp);
+        
+        com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
+            int level = affinityData.getAffinityData().getAffinityLevel();
+            boolean isHighAffinity = config.isHighAffinityActive(level);
+            
+            player.sendSystemMessage(Component.literal(
+                String.format("§e[Conditions] Level: %d, Temp: %.2f, Cold: %s, Hot: %s, HighAff: %s", 
+                    level, temp, isCold ? "YES" : "NO", isHot ? "YES" : "NO", isHighAffinity ? "YES" : "NO")));
+            
+            // 発動可能条件の確認
+            if (isHighAffinity && isCold) {
+                player.sendSystemMessage(Component.literal("§a[Available] High affinity cold bonus"));
+            } else if (isHot && level >= 10) {
+                player.sendSystemMessage(Component.literal("§a[Available] Hot biome endurance bonus"));
+            } else if (isCold && level >= 5) {
+                player.sendSystemMessage(Component.literal("§a[Available] Cold biome comfort bonus"));
+            } else {
+                player.sendSystemMessage(Component.literal("§7[Not Available] No bonus conditions met"));
+            }
+        });
+        
+        // 5. 手動終了テスト
+        player.sendSystemMessage(Component.literal("§7[Test 5] Manual end test (in 3 seconds)"));
+        if (player.getServer() != null) {
+            player.getServer().execute(() -> {
+                try {
+                    Thread.sleep(3000); // 3秒待機
+                    HeatVulnerabilityPowerFactory.RecoveryBonusManager.endRecoveryBonus(player);
+                    player.sendSystemMessage(Component.literal("§7[Test 5 Result] Manual end executed"));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+        
+        source.sendSuccess(() -> Component.literal("§a[Recovery Test] All recovery bonus tests initiated"), false);
     }
 }
