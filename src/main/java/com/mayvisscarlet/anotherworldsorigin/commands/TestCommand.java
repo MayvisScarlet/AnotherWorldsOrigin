@@ -4,6 +4,7 @@ import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.UnwaveringW
 import com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers.HeatVulnerabilityPowerFactory;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
+import com.mayvisscarlet.anotherworldsorigin.util.DebugDisplay;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -127,6 +128,7 @@ public class TestCommand {
             return 0;
         }
 
+        DebugDisplay.info(player, "TEST_EXECUTION", "Starting cold biome effects test for %s", player.getDisplayName().getString());
         source.sendSuccess(
                 () -> Component
                         .literal("§b[Cold Test] Testing cold biome effects for " + player.getDisplayName().getString()),
@@ -140,14 +142,8 @@ public class TestCommand {
         float temperature = biome.getBaseTemperature();
         boolean isCold = patriciaConfig.isColdBiome(temperature);
 
-        player.sendSystemMessage(Component.literal(
-                String.format("§eCurrent Biome: §f%s", biome.toString())));
-        player.sendSystemMessage(Component.literal(
-                String.format("§eTemperature: §f%.2f §7(cold threshold: ≤%.2f)",
-                        temperature,
-                        patriciaConfig.getColdTemperatureThreshold())));
-        player.sendSystemMessage(Component.literal(
-                String.format("§eIs Cold Biome: %s", isCold ? "§aYES" : "§cNO")));
+        DebugDisplay.debug(player, "BIOME_DETECTION", "Current Biome: %s, Temperature: %.2f, Cold threshold: ≤%.2f, Is Cold: %s", 
+            biome.toString(), temperature, patriciaConfig.getColdTemperatureThreshold(), isCold ? "YES" : "NO");
 
         // 親和度とダメージ軽減率を表示
         com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player)
@@ -155,16 +151,11 @@ public class TestCommand {
                     int level = affinityData.getAffinityData().getAffinityLevel();
                     double reduction = patriciaConfig.calculateColdDamageReduction(level);
 
-                    player.sendSystemMessage(Component.literal(
-                            String.format("§eAffinity Level: §a%d", level)));
-                    player.sendSystemMessage(Component.literal(
-                            String.format("§eDamage Reduction: §a%.1f%% §7(max: %.1f%%)",
-                                    reduction * 100,
-                                    patriciaConfig.getColdMaxDamageReduction())));
+                    DebugDisplay.info(player, "AFFINITY_CALCULATION", "Affinity Level: %d, Damage Reduction: %.1f%% (max: %.1f%%)", 
+                        level, reduction * 100, patriciaConfig.getColdMaxDamageReduction());
 
                     if (isCold) {
-                        player.sendSystemMessage(Component.literal(
-                                "§a[Cold Biome] Damage reduction is ACTIVE!"));
+                        DebugDisplay.info(player, "TEST_EXECUTION", "Cold Biome damage reduction is ACTIVE!");
 
                         // UnwaveringWinterPowerFactoryを使用してテストダメージを模擬
                         float testDamage = 10.0f;
@@ -172,16 +163,14 @@ public class TestCommand {
                         float multiplier = UnwaveringWinterPowerFactory.calculateDamageReduction(player, config);
                         float reducedDamage = testDamage * multiplier;
 
-                        player.sendSystemMessage(Component.literal(
-                                String.format("§eSimulated Test: §c%.1f§7 damage → §a%.1f§7 damage", testDamage,
-                                        reducedDamage)));
+                        DebugDisplay.info(player, "TEST_EXECUTION", "Simulated Test: %.1f damage → %.1f damage (%.1f%% reduction)", 
+                            testDamage, reducedDamage, (1.0f - multiplier) * 100);
 
                         source.sendSuccess(() -> Component.literal(String.format(
                                 "§a[Test Result] Damage reduction active: %.1f%% (%.1f → %.1f damage)",
                                 (1.0f - multiplier) * 100, testDamage, reducedDamage)), false);
                     } else {
-                        player.sendSystemMessage(Component.literal(
-                                "§c[Not Cold] Damage reduction is INACTIVE. Go to snowy biome!"));
+                        DebugDisplay.warn(player, "TEST_EXECUTION", "Not in cold biome - damage reduction INACTIVE. Go to snowy biome!");
                         source.sendSuccess(
                                 () -> Component.literal("§c[Test Result] Not in cold biome - no damage reduction"),
                                 false);
@@ -211,15 +200,14 @@ public class TestCommand {
             return 0;
         }
 
+        DebugDisplay.info(player, "TEST_EXECUTION", "Applying 5 magic damage in cold biome for damage reduction test");
         source.sendSuccess(() -> Component.literal("§b[Damage Test] Applying 5 magic damage in cold biome..."), true);
-        player.sendSystemMessage(Component.literal("§e[Damage Test] Applying 5 damage in cold biome..."));
 
         // 実際にダメージを与える
         player.hurt(player.damageSources().magic(), 5.0f);
 
+        DebugDisplay.info(player, "TEST_EXECUTION", "Damage test completed - damage applied, check reduction logs");
         source.sendSuccess(() -> Component.literal("§a[Damage Test] Damage applied! Check reduction logs."), false);
-        player.sendSystemMessage(
-                Component.literal("§a[Damage Test] Damage applied! Check your health and the reduction logs."));
 
         return 1;
     }
@@ -233,6 +221,7 @@ public class TestCommand {
             return 0;
         }
 
+        DebugDisplay.info(player, "TEST_EXECUTION", "Starting attack speed immunity test for %s", player.getDisplayName().getString());
         source.sendSuccess(
                 () -> Component.literal(
                         "§b[Immunity Test] Testing attack speed immunity for " + player.getDisplayName().getString()),
@@ -250,14 +239,14 @@ public class TestCommand {
 
         // 結果を判定
         if (!hadEffectBefore && !hasEffectAfter) {
+            DebugDisplay.info(player, "TEST_EXECUTION", "Attack speed immunity test PASSED - effect successfully blocked");
             source.sendSuccess(() -> Component.literal("§a[Test Passed] 攻撃速度低下が正常に無効化されました"), false);
-            player.sendSystemMessage(Component.literal("§a[Patricia Test] 攻撃速度無効化テスト成功"));
         } else if (hadEffectBefore && !hasEffectAfter) {
+            DebugDisplay.info(player, "TEST_EXECUTION", "Attack speed immunity test PASSED - existing effect removed");
             source.sendSuccess(() -> Component.literal("§a[Test Passed] 既存の攻撃速度低下が除去されました"), false);
-            player.sendSystemMessage(Component.literal("§a[Patricia Test] 既存効果除去テスト成功"));
         } else {
+            DebugDisplay.error(player, "TEST_EXECUTION", "Attack speed immunity test FAILED - effect not blocked");
             source.sendFailure(Component.literal("§c[Test Failed] 攻撃速度低下が無効化されませんでした"));
-            player.sendSystemMessage(Component.literal("§c[Patricia Test] 攻撃速度無効化テスト失敗"));
         }
 
         return 1;
@@ -283,6 +272,8 @@ public class TestCommand {
         com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player)
                 .ifPresent(affinityData -> {
                     var data = affinityData.getAffinityData();
+                    DebugDisplay.info(player, "AFFINITY_CALCULATION", "Affinity Status - Level: %d, Points: %.1f/%.0f", 
+                        data.getAffinityLevel(), data.getCurrentLevelPoints(), (double) data.getPointsToNextLevel());
                     source.sendSuccess(() -> Component.literal(String.format(
                             "§e親和度: §aLv.%d §7(%.1f/%.0f)",
                             data.getAffinityLevel(),
@@ -364,12 +355,13 @@ public class TestCommand {
             UnwaveringWinterPowerFactory.onPatriciaActivated(player);
             HeatVulnerabilityPowerFactory.onPatriciaActivated(player);
 
+            DebugDisplay.info(player, "TEST_EXECUTION", "Patricia abilities manually activated for %s", player.getDisplayName().getString());
             source.sendSuccess(
                     () -> Component.literal("§a" + player.getDisplayName().getString() + " のパトリシア能力を手動で有効化しました"), true);
-            player.sendSystemMessage(Component.literal("§b[Patricia] §f能力が手動で再有効化されました"));
 
             return 1;
         } catch (Exception e) {
+            DebugDisplay.error(player, "TEST_EXECUTION", "Error during Patricia abilities activation: %s", e.getMessage());
             source.sendFailure(Component.literal("§c能力の有効化中にエラーが発生しました: " + e.getMessage()));
             return 0;
         }
@@ -384,6 +376,7 @@ public class TestCommand {
             return 0;
         }
 
+        DebugDisplay.info(player, "HEAT_DAMAGE", "Starting heat damage vulnerability test for %s", player.getDisplayName().getString());
         source.sendSuccess(
                 () -> Component.literal(
                         "§c[Heat Test] Testing heat damage vulnerability for " + player.getDisplayName().getString()),
@@ -398,27 +391,20 @@ public class TestCommand {
                     int level = affinityData.getAffinityData().getAffinityLevel();
                     double multiplier = patriciaConfig.calculateFireDamageMultiplier(level);
 
-                    player.sendSystemMessage(Component.literal(
-                            String.format("§eAffinity Level: §a%d", level)));
-                    player.sendSystemMessage(Component.literal(
-                            String.format("§cHeat Damage Multiplier: §c%.2fx §7(base: %.2fx, min: %.2fx)",
-                                    multiplier,
-                                    patriciaConfig.getFireBaseMultiplier(),
-                                    patriciaConfig.getFireMinMultiplier())));
+                    DebugDisplay.info(player, "HEAT_DAMAGE", "Heat vulnerability - Level: %d, Multiplier: %.2fx (base: %.2fx, min: %.2fx)", 
+                        level, multiplier, patriciaConfig.getFireBaseMultiplier(), patriciaConfig.getFireMinMultiplier());
 
                     // テスト用の火炎ダメージを適用
                     float testDamage = 5.0f;
-                    player.sendSystemMessage(Component.literal(
-                            String.format("§e[Heat Test] Applying %.1f fire damage...", testDamage)));
+                    DebugDisplay.info(player, "HEAT_DAMAGE", "Applying %.1f fire damage for vulnerability test", testDamage);
 
                     // 実際に火炎ダメージを与える
                     player.hurt(player.damageSources().onFire(), testDamage);
 
                     // 予想結果を表示
                     float expectedDamage = testDamage * (float) multiplier;
-                    player.sendSystemMessage(Component.literal(
-                            String.format("§e[Expected Result] §c%.1f§7 damage → §c%.1f§7 damage",
-                                    testDamage, expectedDamage)));
+                    DebugDisplay.info(player, "HEAT_DAMAGE", "Expected result: %.1f damage → %.1f damage (%.2fx multiplier)", 
+                        testDamage, expectedDamage, multiplier);
 
                     source.sendSuccess(() -> Component.literal(String.format(
                             "§c[Test Result] Applied fire damage with %.2fx multiplier (Level %d)",
@@ -426,7 +412,7 @@ public class TestCommand {
                 });
 
         // 熱ダメージソース判定テスト
-        player.sendSystemMessage(Component.literal("§e=== Heat Damage Source Tests ==="));
+        DebugDisplay.debug(player, "HEAT_DAMAGE", "Starting heat damage source identification tests");
 
         // 各種熱ダメージソースのテスト
         testHeatDamageSource(player, player.damageSources().onFire(), "ON_FIRE");
@@ -435,6 +421,7 @@ public class TestCommand {
         testHeatDamageSource(player, player.damageSources().hotFloor(), "HOT_FLOOR");
         testHeatDamageSource(player, player.damageSources().magic(), "MAGIC (non-heat)");
 
+        DebugDisplay.info(player, "HEAT_DAMAGE", "Heat damage vulnerability test completed");
         source.sendSuccess(() -> Component.literal("§c[Heat Test] Heat damage vulnerability test completed"), false);
         return 1;
     }
@@ -445,10 +432,7 @@ public class TestCommand {
     private static void testHeatDamageSource(Player player, net.minecraft.world.damagesource.DamageSource damageSource,
             String sourceName) {
         boolean isHeat = HeatVulnerabilityPowerFactory.HeatDamageCalculator.isHeatDamage(damageSource);
-        player.sendSystemMessage(Component.literal(
-                String.format("§e%s: %s",
-                        sourceName,
-                        isHeat ? "§cHEAT" : "§7NOT HEAT")));
+        DebugDisplay.debug(player, "HEAT_DAMAGE", "Heat source test - %s: %s", sourceName, isHeat ? "HEAT" : "NOT HEAT");
     }
 
     /**
@@ -460,6 +444,7 @@ public class TestCommand {
             return 0;
         }
 
+        DebugDisplay.info(player, "BIOME_DETECTION", "Starting biome effects test for %s", player.getDisplayName().getString());
         source.sendSuccess(
                 () -> Component
                         .literal("§6[Biome Test] Testing biome effects for " + player.getDisplayName().getString()),
@@ -473,19 +458,12 @@ public class TestCommand {
         boolean isCold = patriciaConfig.isColdBiome(temperature);
         boolean isHot = patriciaConfig.isHotBiome(temperature);
 
-        player.sendSystemMessage(Component.literal(
-                String.format("§eCurrent Biome: §f%s", biome.toString())));
-        player.sendSystemMessage(Component.literal(
-                String.format("§eTemperature: §f%.2f", temperature)));
-        player.sendSystemMessage(Component.literal(
-                String.format("§eCold Threshold: §b≤%.2f", patriciaConfig.getColdTemperatureThreshold())));
-        player.sendSystemMessage(Component.literal(
-                String.format("§eHot Threshold: §c≥%.2f", patriciaConfig.getHotTemperatureThreshold())));
+        DebugDisplay.debug(player, "BIOME_DETECTION", "Biome analysis - Current: %s, Temperature: %.2f, Cold threshold: ≤%.2f, Hot threshold: ≥%.2f", 
+            biome.toString(), temperature, patriciaConfig.getColdTemperatureThreshold(), patriciaConfig.getHotTemperatureThreshold());
 
         // バイオーム判定結果
-        String biomeType = isCold ? "§bCOLD" : isHot ? "§cHOT" : "§7NORMAL";
-        player.sendSystemMessage(Component.literal(
-                String.format("§eBiome Type: %s", biomeType)));
+        String biomeType = isCold ? "COLD" : isHot ? "HOT" : "NORMAL";
+        DebugDisplay.info(player, "BIOME_DETECTION", "Biome classification: %s (Cold: %s, Hot: %s)", biomeType, isCold, isHot);
 
         // 親和度による効果計算
         com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability.getAffinityData(player)
@@ -494,30 +472,26 @@ public class TestCommand {
 
                     if (isCold) {
                         double coldReduction = patriciaConfig.calculateColdDamageReduction(level);
-                        player.sendSystemMessage(Component.literal(
-                                String.format("§b[Cold Effects] §7Damage Reduction: §a%.1f%%", coldReduction * 100)));
+                        DebugDisplay.info(player, "BIOME_DETECTION", "Cold biome effects - Damage reduction: %.1f%% (Level %d)", coldReduction * 100, level);
                     }
 
                     if (isHot) {
                         double hotIncrease = patriciaConfig.calculateHotDamageIncrease(level);
-                        player.sendSystemMessage(Component.literal(
-                                String.format("§c[Hot Effects] §7Damage Increase: §c+%.1f%%", hotIncrease * 100)));
-                        player.sendSystemMessage(Component.literal(
-                                "§c[Hot Effects] §7Exhaustion: §c2x (満腹度消費2倍)"));
+                        DebugDisplay.info(player, "BIOME_DETECTION", "Hot biome effects - Damage increase: +%.1f%%, Exhaustion: 2x (Level %d)", hotIncrease * 100, level);
 
                         // テスト用ダメージ適用
                         if (hotIncrease > 0) {
-                            player.sendSystemMessage(
-                                    Component.literal("§e[Test] Applying 3 magic damage in hot biome..."));
+                            DebugDisplay.debug(player, "BIOME_DETECTION", "Applying 3 magic damage for hot biome effect test");
                             player.hurt(player.damageSources().magic(), 3.0f);
                         }
                     }
 
                     if (!isCold && !isHot) {
-                        player.sendSystemMessage(Component.literal("§7[Normal Biome] No special effects"));
+                        DebugDisplay.debug(player, "BIOME_DETECTION", "Normal biome - no special effects active");
                     }
                 });
 
+        DebugDisplay.info(player, "BIOME_DETECTION", "Biome effects test completed");
         source.sendSuccess(() -> Component.literal("§6[Biome Test] Biome effects test completed"), false);
         return 1;
     }
@@ -531,6 +505,7 @@ public class TestCommand {
             return 0;
         }
 
+        DebugDisplay.info(player, "RECOVERY_BONUS", "Starting recovery bonus test for %s", player.getDisplayName().getString());
         source.sendSuccess(
             () -> Component.literal(
                 "§a[Recovery Test] Testing recovery bonus for " + player.getDisplayName().getString()),
@@ -546,25 +521,16 @@ public class TestCommand {
             double increase = config.calculateRecoveryIncrease(level);
             boolean isHighAffinity = config.isHighAffinityActive(level);
             
-            player.sendSystemMessage(Component.literal(
-                String.format("§eAffinity Level: §a%d", level)));
-            player.sendSystemMessage(Component.literal(
-                String.format("§eRecovery Duration: §a%d秒", duration / 20)));
-            player.sendSystemMessage(Component.literal(
-                String.format("§eRecovery Increase: §a%.1f%%", increase * 100)));
-            player.sendSystemMessage(Component.literal(
-                String.format("§eHigh Affinity: %s", isHighAffinity ? "§aYES" : "§cNO")));
+            DebugDisplay.info(player, "RECOVERY_BONUS", "Recovery settings - Level: %d, Duration: %ds, Increase: %.1f%%, High Affinity: %s", 
+                level, duration / 20, increase * 100, isHighAffinity ? "YES" : "NO");
             
             // 既存のボーナス状態確認
             var existingBonus = HeatVulnerabilityPowerFactory.PlayerStateManager.getRecoveryBonusData(player);
             if (existingBonus != null) {
-                player.sendSystemMessage(Component.literal(
-                    String.format("§e[Current Bonus] §a%.1fx §7for %d ticks (source: %s)",
-                        existingBonus.getBonusMultiplier(),
-                        existingBonus.getRemainingTicks(),
-                        existingBonus.getTriggerSource())));
+                DebugDisplay.info(player, "RECOVERY_BONUS", "Current active bonus: %.1fx for %d ticks (source: %s)", 
+                    existingBonus.getBonusMultiplier(), existingBonus.getRemainingTicks(), existingBonus.getTriggerSource());
             } else {
-                player.sendSystemMessage(Component.literal("§e[Current Bonus] §7None active"));
+                DebugDisplay.debug(player, "RECOVERY_BONUS", "No recovery bonus currently active");
             }
             
             // 各発動条件をテスト
@@ -579,10 +545,10 @@ public class TestCommand {
      */
     private static void testRecoveryTriggers(Player player, CommandSourceStack source) {
         // 火炎ダメージ発動テスト
-        player.sendSystemMessage(Component.literal("§e=== Recovery Trigger Tests ==="));
+        DebugDisplay.debug(player, "RECOVERY_BONUS", "Starting recovery trigger tests");
         
         // 1. 火炎ダメージ発動
-        player.sendSystemMessage(Component.literal("§c[Test 1] Fire damage trigger"));
+        DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 1: Fire damage trigger");
         HeatVulnerabilityPowerFactory.RecoveryBonusManager.triggerRecoveryBonus(player, "fire_test");
         
         // 2秒後に状態確認（Minecraft Serverのスケジューラーを使用）
@@ -593,12 +559,10 @@ public class TestCommand {
                     Thread.sleep(2000); // 2秒待機
                     var bonusData = HeatVulnerabilityPowerFactory.PlayerStateManager.getRecoveryBonusData(player);
                     if (bonusData != null) {
-                        player.sendSystemMessage(Component.literal(
-                            String.format("§a[Test 1 Result] Active: %.1fx for %ds", 
-                                bonusData.getBonusMultiplier(),
-                                bonusData.getRemainingTicks() / 20)));
+                        DebugDisplay.info(player, "RECOVERY_BONUS", "Test 1 result: Active bonus %.1fx for %ds", 
+                            bonusData.getBonusMultiplier(), bonusData.getRemainingTicks() / 20);
                     } else {
-                        player.sendSystemMessage(Component.literal("§c[Test 1 Result] No active bonus"));
+                        DebugDisplay.warn(player, "RECOVERY_BONUS", "Test 1 result: No active bonus detected");
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -607,7 +571,7 @@ public class TestCommand {
         }
         
         // 2. Hot系バイオーム滞在発動テスト
-        player.sendSystemMessage(Component.literal("§6[Test 2] Hot biome endurance trigger"));
+        DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 2: Hot biome endurance trigger");
         HeatVulnerabilityPowerFactory.RecoveryBonusManager.triggerRecoveryBonus(player, "hot_biome_endurance_test");
         
         // 3. 高親和度Cold系発動テスト
@@ -617,26 +581,23 @@ public class TestCommand {
             var biome = player.level().getBiome(player.blockPosition()).value();
             boolean isCold = config.isColdBiome(biome.getBaseTemperature());
             
-            player.sendSystemMessage(Component.literal(
-                String.format("§e[Test 3 Info] Level: %d, High Affinity: %s, Cold Biome: %s", 
-                    level, 
-                    config.isHighAffinityActive(level) ? "YES" : "NO",
-                    isCold ? "YES" : "NO")));
+            DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 3 info - Level: %d, High Affinity: %s, Cold Biome: %s", 
+                level, config.isHighAffinityActive(level) ? "YES" : "NO", isCold ? "YES" : "NO");
             
             if (config.isHighAffinityActive(level)) {
                 if (isCold) {
-                    player.sendSystemMessage(Component.literal("§b[Test 3] High affinity cold bonus trigger"));
+                    DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 3: High affinity cold bonus trigger activated");
                     HeatVulnerabilityPowerFactory.RecoveryBonusManager.triggerRecoveryBonus(player, "high_affinity_cold_test");
                 } else {
-                    player.sendSystemMessage(Component.literal("§7[Test 3] Not in cold biome - move to snowy area"));
+                    DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 3: Not in cold biome - move to snowy area");
                 }
             } else {
-                player.sendSystemMessage(Component.literal("§7[Test 3] High affinity not available (Level " + level + " < " + config.getHighAffinityThreshold() + ")"));
+                DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 3: High affinity not available (Level %d < %d)", level, config.getHighAffinityThreshold());
             }
         });
         
         // 4. 総合条件チェックテスト
-        player.sendSystemMessage(Component.literal("§e[Test 4] Comprehensive condition check"));
+        DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 4: Comprehensive condition check");
         
         // 現在の条件を確認して適切なメッセージを表示
         var currentBiome = player.level().getBiome(player.blockPosition()).value();
@@ -648,36 +609,36 @@ public class TestCommand {
             int level = affinityData.getAffinityData().getAffinityLevel();
             boolean isHighAffinity = config.isHighAffinityActive(level);
             
-            player.sendSystemMessage(Component.literal(
-                String.format("§e[Conditions] Level: %d, Temp: %.2f, Cold: %s, Hot: %s, HighAff: %s", 
-                    level, temp, isCold ? "YES" : "NO", isHot ? "YES" : "NO", isHighAffinity ? "YES" : "NO")));
+            DebugDisplay.debug(player, "RECOVERY_BONUS", "Current conditions - Level: %d, Temp: %.2f, Cold: %s, Hot: %s, HighAff: %s", 
+                level, temp, isCold ? "YES" : "NO", isHot ? "YES" : "NO", isHighAffinity ? "YES" : "NO");
             
             // 発動可能条件の確認
             if (isHighAffinity && isCold) {
-                player.sendSystemMessage(Component.literal("§a[Available] High affinity cold bonus"));
+                DebugDisplay.info(player, "RECOVERY_BONUS", "Available: High affinity cold bonus");
             } else if (isHot && level >= 10) {
-                player.sendSystemMessage(Component.literal("§a[Available] Hot biome endurance bonus"));
+                DebugDisplay.info(player, "RECOVERY_BONUS", "Available: Hot biome endurance bonus");
             } else if (isCold && level >= 5) {
-                player.sendSystemMessage(Component.literal("§a[Available] Cold biome comfort bonus"));
+                DebugDisplay.info(player, "RECOVERY_BONUS", "Available: Cold biome comfort bonus");
             } else {
-                player.sendSystemMessage(Component.literal("§7[Not Available] No bonus conditions met"));
+                DebugDisplay.debug(player, "RECOVERY_BONUS", "No bonus conditions currently met");
             }
         });
         
         // 5. 手動終了テスト
-        player.sendSystemMessage(Component.literal("§7[Test 5] Manual end test (in 3 seconds)"));
+        DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 5: Manual end test (in 3 seconds)");
         if (player.getServer() != null) {
             player.getServer().execute(() -> {
                 try {
                     Thread.sleep(3000); // 3秒待機
                     HeatVulnerabilityPowerFactory.RecoveryBonusManager.endRecoveryBonus(player);
-                    player.sendSystemMessage(Component.literal("§7[Test 5 Result] Manual end executed"));
+                    DebugDisplay.debug(player, "RECOVERY_BONUS", "Test 5 result: Manual end executed");
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
             });
         }
         
+        DebugDisplay.info(player, "RECOVERY_BONUS", "All recovery bonus tests initiated");
         source.sendSuccess(() -> Component.literal("§a[Recovery Test] All recovery bonus tests initiated"), false);
     }
 }

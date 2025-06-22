@@ -5,6 +5,7 @@ package com.mayvisscarlet.anotherworldsorigin.client;
 import com.mayvisscarlet.anotherworldsorigin.AnotherWorldsOrigin;
 import com.mayvisscarlet.anotherworldsorigin.network.SkillActivationPacket;
 import com.mayvisscarlet.anotherworldsorigin.network.ModNetworking;
+import com.mayvisscarlet.anotherworldsorigin.util.DebugDisplay;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
@@ -27,26 +28,20 @@ public class SkillInputHandler {
             
             // Another Worlds Origin種族チェック
             if (!OriginHelper.isAnotherWorldsOriginUser(player)) {
-                player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("§c[Skill] §fAnother Worlds Origin species only!"), 
-                    true
-                );
+                DebugDisplay.warn(player, "INPUT_DETECTION", "Another Worlds Origin species only!");
                 return;
             }
             
             // 既にスキル実行中の場合はスキップ
             if (com.mayvisscarlet.anotherworldsorigin.skills.SkillExecutionManager.isExecutingSkill(player)) {
-                player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("§c[Skill] §fAlready executing skill!"), 
-                    true
-                );
+                DebugDisplay.warn(player, "SKILL_EXECUTION", "Already executing skill!");
                 return;
             }
             
             // サーバーにスキル発動を通知
             ModNetworking.sendToServer(new SkillActivationPacket("test_fire_skill"));
             
-            AnotherWorldsOrigin.LOGGER.info("Skill key pressed by {}", player.getDisplayName().getString());
+            DebugDisplay.info(player, "INPUT_DETECTION", "Skill key pressed by %s", player.getDisplayName().getString());
         }
     }
 }

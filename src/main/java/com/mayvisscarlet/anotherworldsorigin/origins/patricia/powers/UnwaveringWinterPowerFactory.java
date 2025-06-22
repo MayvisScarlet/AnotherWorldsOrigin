@@ -3,6 +3,7 @@ package com.mayvisscarlet.anotherworldsorigin.origins.patricia.powers;
 import com.mayvisscarlet.anotherworldsorigin.AnotherWorldsOrigin;
 import com.mayvisscarlet.anotherworldsorigin.capability.AffinityCapability;
 import com.mayvisscarlet.anotherworldsorigin.config.ConfigManager;
+import com.mayvisscarlet.anotherworldsorigin.util.DebugDisplay;
 import com.mayvisscarlet.anotherworldsorigin.util.OriginHelper;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -73,33 +74,47 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
      */
     public static class PlayerStateManager {
         // パトリシア種族チェックのキャッシュ（60秒間有効）
-        private static final Map<UUID, Long> patriciaCache = new ConcurrentHashMap<>();
+        private static final Map<UUID, PatriciaCache> patriciaCache = new ConcurrentHashMap<>();
         private static final long CACHE_DURATION = 60000; // 60秒
+        
+        /**
+         * パトリシア種族判定結果のキャッシュデータ
+         */
+        private static class PatriciaCache {
+            final boolean isPatricia;
+            final long timestamp;
+            
+            PatriciaCache(boolean isPatricia, long timestamp) {
+                this.isPatricia = isPatricia;
+                this.timestamp = timestamp;
+            }
+        }
         
         // 攻撃力変更の監視用キャッシュ
         private static final Map<UUID, Double> lastAttackDamageCache = new ConcurrentHashMap<>();
         private static final Map<UUID, Double> lastAttackSpeedCache = new ConcurrentHashMap<>();
         
         /**
-         * パトリシア種族判定（キャッシュ付き）
+         * パトリシア種族判定（キャッシュ付き・修正版）
          */
         public static boolean isPatriciaOptimized(Player player) {
             UUID playerId = player.getUUID();
             long currentTime = System.currentTimeMillis();
             
             // キャッシュから確認
-            Long cachedTime = patriciaCache.get(playerId);
-            if (cachedTime != null && (currentTime - cachedTime) < CACHE_DURATION) {
-                return true; // キャッシュヒット = パトリシア
+            PatriciaCache cachedData = patriciaCache.get(playerId);
+            if (cachedData != null && (currentTime - cachedData.timestamp) < CACHE_DURATION) {
+                return cachedData.isPatricia; // 実際の判定結果を返す
             }
             
             // 実際の判定
             boolean isPatricia = OriginHelper.isPatricia(player);
-            if (isPatricia) {
-                patriciaCache.put(playerId, currentTime);
-            } else {
-                patriciaCache.remove(playerId);
-            }
+            
+            // パトリシア/非パトリシア両方の結果をキャッシュ
+            patriciaCache.put(playerId, new PatriciaCache(isPatricia, currentTime));
+            
+            DebugDisplay.debug("AFFINITY_CALCULATION", "Patricia check for %s: %s (cached)", 
+                player.getDisplayName().getString(), isPatricia);
             
             return isPatricia;
         }
@@ -140,7 +155,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
         public static void cleanupCache() {
             long currentTime = System.currentTimeMillis();
             patriciaCache.entrySet().removeIf(entry -> 
-                (currentTime - entry.getValue()) > CACHE_DURATION
+                (currentTime - entry.getValue().timestamp) > CACHE_DURATION
             );
         }
         
@@ -158,7 +173,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
             lastAttackDamageCache.remove(playerId);
             lastAttackSpeedCache.remove(playerId);
             
-            AnotherWorldsOrigin.LOGGER.info("Patricia {} Unwavering Winter passive deactivated", 
+            DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s Unwavering Winter passive deactivated", 
                 player.getDisplayName().getString());
         }
     }
@@ -216,11 +231,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
             double increase = newBonus - oldBonus;
             
             if (increase > 0) {
-                player.sendSystemMessage(
-                    net.minecraft.network.chat.Component.literal(
-                        String.format("§e[攻撃力上昇] §a+%.2f §7(総計: +%.2f)", increase, newBonus)
-                    )
-                );
+                DebugDisplay.info(player, "AFFINITY_CALCULATION", "§e[攻撃力上昇] §a+%.2f §7(総計: +%.2f)", increase, newBonus);
             }
         }
     }
@@ -277,7 +288,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                     }
                 }
                 
-                AnotherWorldsOrigin.LOGGER.debug("Patricia {} attack bonus updated for affinity level {}", 
+                DebugDisplay.debug(player, "AFFINITY_CALCULATION", "Patricia %s attack bonus updated for affinity level %d", 
                     player.getDisplayName().getString(), affinityLevel);
             }
         });
@@ -295,7 +306,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
             attackAttribute.removeModifier(ATTACK_SPEED_COMPENSATION_UUID);
         }
         
-        AnotherWorldsOrigin.LOGGER.debug("Patricia {} attack modifiers cleaned up", 
+        DebugDisplay.debug(player, "AFFINITY_CALCULATION", "Patricia %s attack modifiers cleaned up", 
             player.getDisplayName().getString());
     }
     
@@ -322,7 +333,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
      */
     public static void onPatriciaActivated(Player player) {
         if (!PlayerStateManager.isPatriciaOptimized(player)) {
-            AnotherWorldsOrigin.LOGGER.warn("Attempted to activate Patricia abilities for non-Patricia player: {}", 
+            DebugDisplay.warn(player, "ATTACK_SPEED_IMMUNITY", "Attempted to activate Patricia abilities for non-Patricia player: %s", 
                 player.getDisplayName().getString());
             return;
         }
@@ -333,7 +344,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
         // 既存の攻撃速度低下を除去
         if (player.hasEffect(MobEffects.DIG_SLOWDOWN)) {
             player.removeEffect(MobEffects.DIG_SLOWDOWN);
-            AnotherWorldsOrigin.LOGGER.info("Patricia {} initial cleanup: removed DIG_SLOWDOWN", 
+            DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s initial cleanup: removed DIG_SLOWDOWN", 
                 player.getDisplayName().getString());
         }
         
@@ -341,24 +352,18 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
         updateAttackPowerBonus(player, config);
         PlayerStateManager.cacheCurrentAttributes(player);
         
-        AnotherWorldsOrigin.LOGGER.info("Patricia {} Unwavering Winter passive activated", 
+        DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s Unwavering Winter passive activated", 
             player.getDisplayName().getString());
         
         // プレイヤーに通知
-        player.sendSystemMessage(
-            net.minecraft.network.chat.Component.literal("§b[Patricia] §f揺らぐ事なき冬が発動しました")
-        );
+        DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "§b[Patricia] §f揺らぐ事なき冬が発動しました");
         
         // 現在の攻撃力ボーナスを表示
         AffinityCapability.getAffinityData(player).ifPresent(affinityData -> {
             int level = affinityData.getAffinityData().getAffinityLevel();
             if (level > 0) {
                 double bonus = ConfigManager.getPatriciaConfig().calculateAffinityAttackBonus(level);
-                player.sendSystemMessage(
-                    net.minecraft.network.chat.Component.literal(
-                        String.format("§e[攻撃力ボーナス] §a+%.2f §7(親和度Lv.%d)", bonus, level)
-                    )
-                );
+                DebugDisplay.info(player, "AFFINITY_CALCULATION", "§e[攻撃力ボーナス] §a+%.2f §7(親和度Lv.%d)", bonus, level);
             }
         });
     }
@@ -380,23 +385,15 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
         
         // マイルストーン達成時の特別メッセージ
         if (newLevel == patriciaConfig.getHighAffinityThreshold()) {
-            player.sendSystemMessage(
-                net.minecraft.network.chat.Component.literal(
-                    "§l§b[Patricia] §r§f高親和度に到達！冬の力がさらに強くなった"
-                )
-            );
+            DebugDisplay.info(player, "AFFINITY_CALCULATION", "§l§b[Patricia] §r§f高親和度に到達！冬の力がさらに強くなった");
             EffectCalculator.showAttackPowerIncrease(player, oldLevel, newLevel);
             
         } else if (newLevel == patriciaConfig.getAdvancedThreshold()) {
-            player.sendSystemMessage(
-                net.minecraft.network.chat.Component.literal(
-                    "§l§6[Patricia] §r§f上級レベルに到達！真の氷の戦士となった"
-                )
-            );
+            DebugDisplay.info(player, "AFFINITY_CALCULATION", "§l§6[Patricia] §r§f上級レベルに到達！真の氷の戦士となった");
             EffectCalculator.showAttackPowerIncrease(player, oldLevel, newLevel);
         }
         
-        AnotherWorldsOrigin.LOGGER.info("Patricia {} affinity level up: {} -> {} (attack bonus updated immediately)", 
+        DebugDisplay.info(player, "AFFINITY_CALCULATION", "Patricia %s affinity level up: %d -> %d (attack bonus updated immediately)", 
             player.getDisplayName().getString(), oldLevel, newLevel);
     }
     
@@ -428,14 +425,11 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                 if (PlayerStateManager.isPatriciaOptimized(player)) {
                     event.setResult(Event.Result.DENY);
                     
-                    AnotherWorldsOrigin.LOGGER.debug("Patricia {} blocked DIG_SLOWDOWN effect", 
+                    DebugDisplay.debug(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s blocked DIG_SLOWDOWN effect", 
                         player.getDisplayName().getString());
                     
                     if (ConfigManager.getPatriciaConfig().shouldShowDebugMessages()) {
-                        player.displayClientMessage(
-                            net.minecraft.network.chat.Component.literal("§b[揺らぐ事なき冬] §7攻撃速度低下を無効化"), 
-                            true
-                        );
+                        DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "§b[揺らぐ事なき冬] §7攻撃速度低下を無効化");
                     }
                 }
             }
@@ -458,14 +452,11 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                             if (player.hasEffect(MobEffects.DIG_SLOWDOWN)) {
                                 player.removeEffect(MobEffects.DIG_SLOWDOWN);
                                 
-                                AnotherWorldsOrigin.LOGGER.debug("Patricia {} removed DIG_SLOWDOWN after addition", 
+                                DebugDisplay.debug(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s removed DIG_SLOWDOWN after addition", 
                                     player.getDisplayName().getString());
                                 
                                 if (ConfigManager.getPatriciaConfig().shouldShowDebugMessages()) {
-                                    player.displayClientMessage(
-                                        net.minecraft.network.chat.Component.literal("§b[揺らぐ事なき冬] §7攻撃速度低下を除去"), 
-                                        true
-                                    );
+                                    DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "§b[揺らぐ事なき冬] §7攻撃速度低下を除去");
                                 }
                             }
                         });
@@ -496,20 +487,15 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                 
                 // ログ表示
                 float reductionPercent = (1.0f - damageReduction) * 100;
-                AnotherWorldsOrigin.LOGGER.info("Patricia {} cold biome damage reduction: {} -> {} ({}% reduced)", 
+                DebugDisplay.info(player, "COLD_DAMAGE", "Patricia %s cold biome damage reduction: %.2f -> %.2f (%.1f%% reduced)", 
                     player.getDisplayName().getString(), 
-                    String.format("%.2f", originalDamage),
-                    String.format("%.2f", newDamage), 
-                    String.format("%.1f", reductionPercent));
+                    originalDamage,
+                    newDamage, 
+                    reductionPercent);
                 
                 // プレイヤーに視覚的フィードバック
-                player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal(
-                        String.format("§b[冬の恩恵] §7ダメージ軽減: %.1f → %.1f (§a%.1f%%§7軽減)", 
-                            originalDamage, newDamage, reductionPercent)
-                    ), 
-                    true
-                );
+                DebugDisplay.info(player, "COLD_DAMAGE", "§b[冬の恩恵] §7ダメージ軽減: %.1f → %.1f (§a%.1f%%§7軽減)", 
+                    originalDamage, newDamage, reductionPercent);
             }
         }
         
@@ -530,11 +516,11 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                 // 既存の攻撃速度低下を除去
                 if (player.hasEffect(MobEffects.DIG_SLOWDOWN)) {
                     player.removeEffect(MobEffects.DIG_SLOWDOWN);
-                    AnotherWorldsOrigin.LOGGER.info("Patricia {} login cleanup: removed DIG_SLOWDOWN", 
+                    DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s login cleanup: removed DIG_SLOWDOWN", 
                         player.getDisplayName().getString());
                 }
                 
-                AnotherWorldsOrigin.LOGGER.info("Patricia {} logged in - abilities initialized", 
+                DebugDisplay.info(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s logged in - abilities initialized", 
                     player.getDisplayName().getString());
             }
         }
@@ -559,7 +545,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                             updateAttackPowerBonus(player, DEFAULT_CONFIG);
                             PlayerStateManager.cacheCurrentAttributes(player);
                             
-                            AnotherWorldsOrigin.LOGGER.debug("Patricia {} attack bonus updated due to equipment change", 
+                            DebugDisplay.debug(player, "AFFINITY_CALCULATION", "Patricia %s attack bonus updated due to equipment change", 
                                 player.getDisplayName().getString());
                         });
                     }
@@ -581,7 +567,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
                         updateAttackPowerBonus(player, DEFAULT_CONFIG);
                         PlayerStateManager.cacheCurrentAttributes(player);
                         
-                        AnotherWorldsOrigin.LOGGER.debug("Patricia {} attack bonus updated after dimension change", 
+                        DebugDisplay.debug(player, "AFFINITY_CALCULATION", "Patricia %s attack bonus updated after dimension change", 
                             player.getDisplayName().getString());
                     });
                 }
@@ -605,7 +591,7 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
             // 10秒ごとにAttribute変更をチェック（効率的な監視）
             if (player.tickCount % 200 == 0) {
                 if (PlayerStateManager.checkAttributeChanges(player)) {
-                    AnotherWorldsOrigin.LOGGER.debug("Patricia {} attribute change detected, updating attack bonus", 
+                    DebugDisplay.debug(player, "AFFINITY_CALCULATION", "Patricia %s attribute change detected, updating attack bonus", 
                         player.getDisplayName().getString());
                     
                     // 攻撃力ボーナスを更新
@@ -620,13 +606,14 @@ public class UnwaveringWinterPowerFactory extends PowerFactory<UnwaveringWinterP
             if (player.tickCount % 2400 == 0) {
                 if (player.hasEffect(MobEffects.DIG_SLOWDOWN)) {
                     player.removeEffect(MobEffects.DIG_SLOWDOWN);
-                    AnotherWorldsOrigin.LOGGER.debug("Patricia {} fallback cleanup: removed DIG_SLOWDOWN", 
+                    DebugDisplay.debug(player, "ATTACK_SPEED_IMMUNITY", "Patricia %s fallback cleanup: removed DIG_SLOWDOWN", 
                         player.getDisplayName().getString());
                 }
             }
             
             // 5分ごとにキャッシュクリーンアップ
             if (player.tickCount % 6000 == 0) {
+                DebugDisplay.debug("PERFORMANCE", "Patricia cache cleanup performed");
                 PlayerStateManager.cleanupCache();
             }
         }
