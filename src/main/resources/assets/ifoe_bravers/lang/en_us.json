@@ -1,0 +1,24 @@
+{
+    "key.categories.ifoe_bravers": "IfOE_Bravers",
+    "key.ifoe_bravers.skill": "Skill Key",
+    
+    "origin.ifoe_bravers.patricia.name": "Patricia",
+    "origin.ifoe_bravers.patricia.description": "An ice warrior who manipulates the power of winter. Specialized in cold climate combat, but vulnerable to heat.\n\n§9Characteristics:§r\n• Master of ice abilities\n• Enhanced through growth system\n• Thrives in cold biomes\n\n§cWarning:§r Vulnerable to fire and heat",
+    
+    "power.ifoe_bravers.ice_resistance.name": "Unwavering Winter",
+    "power.ifoe_bravers.ice_resistance.description": "Immune to attack speed reduction and gains power in cold biomes.",
+    
+    "power.ifoe_bravers.fire_weakness.name": "Heat Vulnerability", 
+    "power.ifoe_bravers.fire_weakness.description": "Takes increased damage from fire and heat sources.",
+    
+    "power.ifoe_bravers.ice_bloom.name": "Ice Bloom",
+    "power.ifoe_bravers.ice_bloom.description": "Creates three ice blooms that deal damage based on attack power.",
+    
+    "power.ifoe_bravers.frost_field.name": "Frost Field",
+    "power.ifoe_bravers.frost_field.description": "Creates a frost field that buffs allies and debuffs enemies.",
+    
+    "power.ifoe_bravers.spreading_frost.name": "Spreading Frost",
+    "power.ifoe_bravers.spreading_frost.description": "Releases expanding frost waves that slow enemies.",
+    
+    "layer.origins.patricia.name": "Patricia Origins"
+}

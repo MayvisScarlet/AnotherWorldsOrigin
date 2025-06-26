@@ -1,0 +1,10 @@
+{
+  "type": "apoli:prevent_entity_use",
+  "entity_condition": {
+    "type": "apoli:status_effect",
+    "effect": "minecraft:mining_fatigue"
+  },
+  "inverted": true,
+  "name": "採掘速度低下無効化",
+  "description": "採掘速度低下（攻撃速度低下を含む）効果を受けない"
+}

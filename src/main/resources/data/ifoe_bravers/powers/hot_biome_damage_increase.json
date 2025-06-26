@@ -1,0 +1,22 @@
+{
+  "type": "apoli:modify_damage_taken",
+  "condition": {
+    "type": "apoli:biome",
+    "biomes": [
+      "#minecraft:is_hot",
+      "minecraft:desert",
+      "minecraft:badlands", 
+      "minecraft:nether_wastes",
+      "minecraft:basalt_deltas",
+      "minecraft:crimson_forest",
+      "minecraft:warped_forest",
+      "minecraft:soul_sand_valley"
+    ]
+  },
+  "modifier": {
+    "operation": "multiply_total",
+    "value": 0.25
+  },
+  "name": "Hot系バイオームダメージ増加",
+  "description": "Hot系バイオームで受けるダメージが125%になる（成長により軽減）"
+}

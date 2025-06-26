@@ -1,0 +1,18 @@
+{
+  "powers": [
+    "ifoe_bravers:fire_vulnerability",
+    "ifoe_bravers:hot_biome_damage_increase",
+    "ifoe_bravers:hot_biome_exhaustion",
+    "ifoe_bravers:mining_fatigue_immunity",
+    "ifoe_bravers:cold_biome_defense",
+    "ifoe_bravers:affinity_attack_bonus",
+    "ifoe_bravers:affinity_recovery_bonus"
+  ],
+  "icon": {
+    "item": "minecraft:blue_ice"
+  },
+  "order": 10,
+  "impact": 2,
+  "name": "Patricia",
+  "description": "氷の力を操る強力な戦士。冬の恩恵を受けるが、熱に弱い。"
+}

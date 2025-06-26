@@ -3,24 +3,24 @@ loaderVersion="[47,)"
 license="MIT"
 
 [[mods]]
-modId="anotherworldsorigin"
+modId="ifoe_bravers"
 version="${file.jarVersion}"
-displayName="Another Worlds Origin"
+displayName="IfOE_Bravers"
 description='''
-強力な異世界種族を追加するOrigins MODアドオン
+Inherit from Outer Epic - 異世界の英雄の力を継承するMOD
 '''
 authors="MayvisScarlet"
-credits="Origins MOD, Apotheosis MOD"
+credits="Apotheosis MOD"
 logoFile="logo.png"
 
-[[dependencies.anotherworldsorigin]]
+[[dependencies.ifoe_bravers]]
 modId="forge"
 mandatory=true
 versionRange="[47.4.0,)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.anotherworldsorigin]]
+[[dependencies.ifoe_bravers]]
 modId="minecraft"
 mandatory=true
 versionRange="[1.20.1,1.21)"
@@ -28,14 +28,14 @@ ordering="NONE"
 side="BOTH"
 
 # Origins関連は任意依存として設定（開発時の競合回避）
-[[dependencies.anotherworldsorigin]]
+[[dependencies.ifoe_bravers]]
 modId="origins"
 mandatory=false
 versionRange="[1.10.0,)"
 ordering="AFTER"
 side="BOTH"
 
-[[dependencies.anotherworldsorigin]]
+[[dependencies.ifoe_bravers]]
 modId="apotheosis"
 mandatory=false
 versionRange="[7.4.0,)"

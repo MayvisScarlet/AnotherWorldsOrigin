@@ -5,8 +5,8 @@ plugins {
 }
 
 version = '1.0.0'
-group = 'com.mayvisscarlet.anotherworldsorigin'
-archivesBaseName = 'anotherworldsorigin'
+group = 'com.mayvisscarlet.ifoe_bravers'
+archivesBaseName = 'ifoe_bravers'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
@@ -27,7 +27,7 @@ minecraft {
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             
             mods {
-                anotherworldsorigin {
+                ifoe_bravers {
                     source sourceSets.main
                 }
             }
@@ -41,7 +41,7 @@ minecraft {
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             args '--nogui'
             mods {
-                anotherworldsorigin {
+                ifoe_bravers {
                     source sourceSets.main
                 }
             }
@@ -51,9 +51,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            args '--mod', 'anotherworldsorigin', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            args '--mod', 'ifoe_bravers', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
             mods {
-                anotherworldsorigin {
+                ifoe_bravers {
                     source sourceSets.main
                 }
             }
@@ -79,16 +79,6 @@ repositories {
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.0'
 
-    // Calio (Origins dependency)
-    implementation fg.deobf("io.github.edwinmindcraft:calio-forge:1.20.1-1.11.0.5")
-    // Apoli (Origins dependency)
-    implementation fg.deobf("io.github.edwinmindcraft:apoli-forge:1.20.1-2.9.0.8")
-    // Origins MOD - 実際にクライアントで動作しているバージョンと同じものを使用
-    implementation fg.deobf("io.github.edwinmindcraft:origins-forge:1.20.1-1.10.0.9")
-    
-    // Caelus API (Origins dependency)
-    implementation fg.deobf("curse.maven:caelus-308989:5281700") // caelus-forge-3.2.0+1.20.1
-
     // Apotheosis MOD (Shadhack's Apotheosis)
     implementation fg.deobf("curse.maven:apotheosis-313970:6461960") // Apotheosis 1.20.1-7.4.8
 
@@ -105,7 +95,7 @@ dependencies {
 jar {
     manifest {
         attributes([
-                "Specification-Title"     : "anotherworldsorigin",
+                "Specification-Title"     : "ifoe_bravers",
                 "Specification-Vendor"    : "mayvisscarlet",
                 "Specification-Version"   : "1",
                 "Implementation-Title"    : project.name,

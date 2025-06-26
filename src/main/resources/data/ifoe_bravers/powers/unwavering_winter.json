@@ -1,0 +1,9 @@
+{
+  "type": "ifoe_bravers:unwavering_winter",
+  "name": "揺らぐ事なき冬",
+  "description": "攻撃速度低下の影響を受けず、成長度に応じて攻撃力が上昇する。",
+  "attack_speed_immunity": true,
+  "cold_biome_defense": true,
+  "affinity_attack_bonus": true,
+  "attack_speed_compensation": true
+}

@@ -1,0 +1,41 @@
+{
+  "type": "apoli:modify_exhaustion",
+  "condition": {
+    "type": "apoli:and",
+    "conditions": [
+      {
+        "type": "apoli:biome",
+        "biomes": [
+          "#minecraft:is_hot",
+          "minecraft:desert",
+          "minecraft:badlands",
+          "minecraft:nether_wastes",
+          "minecraft:basalt_deltas",
+          "minecraft:crimson_forest",
+          "minecraft:warped_forest",
+          "minecraft:soul_sand_valley"
+        ]
+      },
+      {
+        "type": "apoli:or",
+        "conditions": [
+          {
+            "type": "apoli:sprinting"
+          },
+          {
+            "type": "apoli:swimming"
+          },
+          {
+            "type": "apoli:sneaking"
+          }
+        ]
+      }
+    ]
+  },
+  "modifier": {
+    "operation": "multiply_total",
+    "value": 1.0
+  },
+  "name": "Hot系バイオーム満腹度消費増加",
+  "description": "Hot系バイオームでの行動時、満腹度消費が2倍になる"
+}

@@ -1,0 +1,21 @@
+{
+  "type": "apoli:modify_damage_taken",
+  "condition": {
+    "type": "apoli:biome", 
+    "biomes": [
+      "#minecraft:is_cold",
+      "minecraft:snowy_plains",
+      "minecraft:ice_spikes",
+      "minecraft:frozen_river",
+      "minecraft:snowy_taiga",
+      "minecraft:frozen_ocean",
+      "minecraft:deep_frozen_ocean"
+    ]
+  },
+  "modifier": {
+    "operation": "multiply_total",
+    "value": -0.3
+  },
+  "name": "Cold系バイオーム防御",
+  "description": "Cold系バイオームで受けるダメージが70%に軽減される（成長により向上）"
+}
